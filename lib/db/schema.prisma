@@ -1,0 +1,309 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ===== Enums =====
+enum Role {
+  USER
+  OWNER
+  ADMIN
+}
+
+enum Mood {
+  RELAXED
+  ROMANTIC
+  ADVENTUROUS
+  FAMILY_FRIENDLY
+  BUSINESS
+  HISTORICAL
+  SHOPPING
+  EDUCATIONAL
+  CULTURAL
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum MainCategoryEnum {
+  FOOD_PACK
+  FAMILY_AND_KIDS
+  NIGHT_LIFE
+  ARTS_AND_CULTURE
+  NATURE_AND_OUTDOOR
+  SHOPPING_AND_LIFESTYLE
+  EVENTS_AND_EXPERIENCE
+}
+
+// ===== Users =====
+model User {
+  id            String          @id @default(uuid())
+  name          String?
+  email         String          @unique
+  password      String?
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  role          Role            @default(USER)
+  reviews       Review[]
+  bookings      Booking[]
+  savedPlaces   SavedPlace[]
+  likes         PlaceLike[]
+  ownedPlaces   Place[]
+  Authenticator Authenticator[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role])
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+model Authenticator {
+  credentialID         String  @unique
+  userId               String
+  providerAccountId    String
+  credentialPublicKey  String
+  counter              Int
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, credentialID])
+  @@index([userId])
+}
+
+// ===== Places =====
+model Place {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  location    String
+  latitude    Float?
+  longitude   Float?
+  moods       Mood[]
+  imageUrls   String[]
+  priceMin    Int?
+  priceMax    Int?
+  ownerId     String?
+  owner       User?    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  features            Feature[]
+  rules               Rule[]
+  reviews             Review[]
+  savedBy             SavedPlace[]
+  menuItems           MenuItem[]
+  bookings            Booking[]
+  placeMainCategories PlaceMainCategory[]
+  placeSubCategories  PlaceSubCategory[]
+  placeLikes          PlaceLike[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([location])
+}
+
+model PlaceLike {
+  id        String   @id @default(uuid())
+  userId    String
+  placeId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, placeId])
+  @@index([userId])
+  @@index([placeId])
+  @@map("placelike")
+}
+
+model Feature {
+  id      String @id @default(uuid())
+  name    String
+  place   Place  @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  placeId String
+
+  @@index([placeId])
+}
+
+model Rule {
+  id      String @id @default(uuid())
+  text    String
+  place   Place  @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  placeId String
+
+  @@index([placeId])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  place     Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  placeId   String
+  parentId  String?  @map("parent_id")
+  parent    Review?  @relation("ReviewReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Review[] @relation("ReviewReplies")
+
+  @@index([userId])
+  @@index([placeId])
+  @@index([parentId])
+}
+
+model SavedPlace {
+  id      String @id @default(uuid())
+  userId  String
+  placeId String
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, placeId])
+  @@index([userId])
+  @@index([placeId])
+  @@map("savedplace")
+}
+
+model MenuItem {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  price       Int?
+  tags        String[]
+
+  place   Place  @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  placeId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([placeId])
+}
+
+model Booking {
+  id     String         @id @default(uuid())
+  date   DateTime
+  status BookingStatus?
+
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId  String
+  place   Place  @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  placeId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, placeId, date])
+  @@index([userId])
+  @@index([placeId])
+  @@index([status])
+}
+
+// ===== Categories =====
+model MainCategory {
+  id                  String              @id @default(uuid())
+  name                MainCategoryEnum    @unique
+  subCategories       SubCategory[]
+  placeMainCategories PlaceMainCategory[]
+
+  @@index([name])
+}
+
+model SubCategory {
+  id             String       @id @default(uuid())
+  name           String
+  imageUrl       String?
+  mainCategory   MainCategory @relation(fields: [mainCategoryId], references: [id])
+  mainCategoryId String
+
+  placeSubCategories PlaceSubCategory[]
+
+  @@index([mainCategoryId])
+  @@index([name])
+}
+
+// ===== Junction Tables =====
+model PlaceMainCategory {
+  id             String       @id @default(uuid())
+  place          Place        @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  placeId        String
+  mainCategory   MainCategory @relation(fields: [mainCategoryId], references: [id], onDelete: Cascade)
+  mainCategoryId String
+
+  @@unique([placeId, mainCategoryId])
+  @@index([placeId])
+  @@index([mainCategoryId])
+  @@map("PlaceMainCategory")
+}
+
+model PlaceSubCategory {
+  id            String      @id @default(uuid())
+  place         Place       @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  placeId       String
+  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
+  subCategoryId String
+
+  @@unique([placeId, subCategoryId])
+  @@index([placeId])
+  @@index([subCategoryId])
+  @@map("PlaceSubCategory")
+}
