@@ -92,7 +92,7 @@ export default function CategoryPage() {
           return;
         }
 
-        let { data, error: placeErr } = await supabase
+        const { data, error: placeErr } = await supabase
           .from("Place")
           .select(`
             id,name,description,location,latitude,longitude,moods,priceMin,priceMax,imageUrls,
@@ -116,9 +116,30 @@ export default function CategoryPage() {
             return;
           }
 
-          data = (fallback.data as RawPlace[]).filter((p) =>
+          const fallbackData = (fallback.data as RawPlace[]).filter((p) =>
             (p.PlaceMainCategory ?? []).some((pm) => pm?.mainCategoryId === mainCat.id)
           );
+
+          const mappedFallback: UiPlace[] = fallbackData.map((p) => ({
+            id: p.id,
+            name: p.name ?? "Unknown Place",
+            description: p.description ?? "",
+            location: p.location ?? "",
+            latitude: p.latitude ?? undefined,
+            longitude: p.longitude ?? undefined,
+            moods: Array.isArray(p.moods) ? p.moods : [],
+            imageSrc: p.imageUrls?.[0] ?? "/default-image.jpg",
+            avatarSrc: p.imageUrls?.[1] ?? "/default-avatar.jpg",
+            priceMin: p.priceMin ?? 0,
+            priceMax: p.priceMax ?? 0,
+            categories: (p.PlaceSubCategory ?? [])
+              .map((s) => s?.SubCategory?.name)
+              .filter(Boolean) as string[],
+            likes: 0,
+          }));
+
+          setPlaces(mappedFallback);
+          return;
         }
 
         const rawPlaces = data as RawPlace[];
