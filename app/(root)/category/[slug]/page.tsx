@@ -6,8 +6,8 @@ import CombinedSearchFilter4, { FilterValues } from "@/components/CombinedSearch
 import PlaceCard2 from "@/components/PlaceCard2";
 import { supabase } from "@/lib/supabase";
 
-// Map pretty slugs -> Prisma enum (MainCategoryEnum)
-const SLUG_TO_ENUM: Record<string, string> = {
+// Map slugs to Prisma enum
+const SLUG_TO_ENUM = {
     "food": "FOOD_PACK",
     "family": "FAMILY_AND_KIDS",
     "nightlife": "NIGHT_LIFE",
@@ -15,7 +15,9 @@ const SLUG_TO_ENUM: Record<string, string> = {
     "nature-and-outdoor": "NATURE_AND_OUTDOOR",
     "shopping-and-lifestyle": "SHOPPING_AND_LIFESTYLE",
     "events-and-experiences": "EVENTS_AND_EXPERIENCE",
-};
+} as const;
+
+type MainCategoryEnum = typeof SLUG_TO_ENUM[keyof typeof SLUG_TO_ENUM];
 
 type RawPlace = {
     id: string;
@@ -44,15 +46,14 @@ type UiPlace = {
     avatarSrc: string;
     priceMin: number;
     priceMax: number;
-    categories: string[]; // derived from PlaceSubCategory -> SubCategory.name
+    categories: string[];
     likes: number;
 };
 
 export default function CategoryPage() {
-
     const params = useParams<{ slug: string }>();
     const slug = params?.slug;
-    const mainEnum = slug ? SLUG_TO_ENUM[slug] : undefined;
+    const mainEnum: MainCategoryEnum | undefined = slug ? SLUG_TO_ENUM[slug] : undefined;
 
     const [filters, setFilters] = useState<FilterValues>({
         searchTerm: "",
@@ -77,7 +78,7 @@ export default function CategoryPage() {
                 setLoading(true);
                 setErrMsg(null);
 
-                // 1) Get the MainCategory row (to obtain its id)
+                // Fetch main category ID
                 const { data: mainCat, error: mcErr } = await supabase
                     .from("MainCategory")
                     .select("id,name")
@@ -93,38 +94,38 @@ export default function CategoryPage() {
                     return;
                 }
 
-                // 2) Fetch Places that are linked to this MainCategory via PlaceMainCategory (inner join)
-                //    We filter by the junction's mainCategoryId to only get places in this category.
+                // Fetch Places linked to this main category
                 let { data, error } = await supabase
                     .from("Place")
                     .select(`
-            id,name,description,location,latitude,longitude,moods,priceMin,priceMax,imageUrls,
-            PlaceSubCategory(SubCategory(name)),
-            PlaceMainCategory!inner(mainCategoryId)
-          `)
+                        id,name,description,location,latitude,longitude,moods,priceMin,priceMax,imageUrls,
+                        PlaceSubCategory(SubCategory(name)),
+                        PlaceMainCategory!inner(mainCategoryId)
+                    `)
                     .eq("PlaceMainCategory.mainCategoryId", mainCat.id);
 
-                // Fallback: if the inner join filter fails on your Supabase setup, fetch + filter client-side
                 if (error) {
-                    console.warn("Join-filter fetch failed, falling back:", error.message);
+                    console.warn("Join-fetch failed, falling back:", error.message);
                     const fallback = await supabase
                         .from("Place")
                         .select(`
-              id,name,description,location,latitude,longitude,moods,priceMin,priceMax,imageUrls,
-              PlaceSubCategory(SubCategory(name)),
-              PlaceMainCategory(mainCategoryId)
-            `);
+                            id,name,description,location,latitude,longitude,moods,priceMin,priceMax,imageUrls,
+                            PlaceSubCategory(SubCategory(name)),
+                            PlaceMainCategory(mainCategoryId)
+                        `);
 
                     if (fallback.error) {
                         setErrMsg(`Failed to load places: ${fallback.error.message}`);
                         return;
                     }
+
                     data = (fallback.data as RawPlace[]).filter(p =>
                         (p.PlaceMainCategory ?? []).some(pm => pm?.mainCategoryId === mainCat.id)
                     );
                 }
 
-                const mapped: UiPlace[] = (data as RawPlace[]).map((p) => ({
+                const rawPlaces = data as RawPlace[];
+                const mapped: UiPlace[] = rawPlaces.map((p) => ({
                     id: p.id,
                     name: p.name ?? "Unknown Place",
                     description: p.description ?? "",
@@ -139,13 +140,14 @@ export default function CategoryPage() {
                     categories: (p.PlaceSubCategory ?? [])
                         .map(s => s?.SubCategory?.name)
                         .filter(Boolean) as string[],
-                    likes: 0, // You can join likes count if you have a view; left at 0 for now
+                    likes: 0,
                 }));
 
                 setPlaces(mapped);
-            } catch (e: any) {
+            } catch (e: unknown) {
                 console.error(e);
-                setErrMsg("Unexpected error loading places");
+                if (e instanceof Error) setErrMsg(e.message);
+                else setErrMsg("Unexpected error loading places");
             } finally {
                 setLoading(false);
             }
@@ -174,8 +176,8 @@ export default function CategoryPage() {
                 place.categories.some((c) => filters.selectedCategories.includes(c));
 
             const matchesPrice = rangesOverlap(
-                place.priceMin ?? 0,
-                place.priceMax ?? 0,
+                place.priceMin,
+                place.priceMax,
                 filters.priceRange[0],
                 filters.priceRange[1]
             );
@@ -188,9 +190,7 @@ export default function CategoryPage() {
         return <div className="p-6 text-center">Unknown category</div>;
     }
     if (loading) {
-        return (
-            <div className="p-6 text-center">Loading {slug} places…</div>
-        );
+        return <div className="p-6 text-center">Loading {slug} places…</div>;
     }
     if (errMsg) {
         return <div className="p-6 text-center text-red-500">{errMsg}</div>;
@@ -198,13 +198,11 @@ export default function CategoryPage() {
 
     return (
         <div className="space-y-8">
-            {/* Filter shows ONLY subcategories for this main category */}
             <CombinedSearchFilter4
                 mainCategoryEnum={mainEnum}
                 onFilterChange={setFilters}
             />
 
-            {/* Results (reusing your PlaceCard2) */}
             <div className="max-w-[935px] mx-auto flex flex-col gap-6">
                 {filteredPlaces.length === 0 && (
                     <div className="p-6 text-center">No places match your filters.</div>
