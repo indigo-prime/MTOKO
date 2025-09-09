@@ -5,6 +5,7 @@ import CombinedSearchFilter3, { FilterValues } from "@/components/CombinedSearch
 import PlacesResults, { Place } from "@/components/PlacesResults";
 import { supabase } from "@/lib/supabase";
 
+// Strongly-typed Supabase response
 interface SupabasePlace {
   id: string;
   name: string | null;
@@ -34,7 +35,7 @@ export default function PlacesPage() {
   useEffect(() => {
     async function fetchPlaces() {
       try {
-        const { data, error } = await supabase
+        const { data, error: fetchError } = await supabase
           .from<SupabasePlace>("Place")
           .select(`
             *,
@@ -42,9 +43,9 @@ export default function PlacesPage() {
             PlaceMainCategory (MainCategory (name))
           `);
 
-        if (error) {
-          console.error("Error fetching places:", error);
-          setError(`Failed to load places: ${error.message}`);
+        if (fetchError) {
+          console.error("Error fetching places:", fetchError);
+          setError(`Failed to load places: ${fetchError.message}`);
           return;
         }
 
@@ -65,9 +66,10 @@ export default function PlacesPage() {
         }));
 
         setAllPlaces(mappedPlaces);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Unexpected error:", err);
-        setError("Unexpected error occurred: " + (err.message || "Unknown error"));
+        if (err instanceof Error) setError(err.message);
+        else setError("Unexpected error occurred");
       } finally {
         setLoading(false);
       }
@@ -76,15 +78,9 @@ export default function PlacesPage() {
     fetchPlaces();
   }, []);
 
-  // Helper to check if price ranges overlap
-  const rangesOverlap = (
-    placeMin: number,
-    placeMax: number,
-    selMin: number,
-    selMax: number
-  ) => placeMax >= selMin && placeMin <= selMax;
+  const rangesOverlap = (placeMin: number, placeMax: number, selMin: number, selMax: number) =>
+    placeMax >= selMin && placeMin <= selMax;
 
-  // Apply filters
   const filteredPlaces = useMemo(() => {
     const term = filters.searchTerm.toLowerCase().trim();
 
