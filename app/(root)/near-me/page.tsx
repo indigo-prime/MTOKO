@@ -6,6 +6,7 @@ import PlaceCard2 from "@/components/PlaceCard2";
 
 const PlacesMap = dynamic(() => import("@/components/maps/PlacesMap"), { ssr: false });
 
+// Type for each place
 interface Place {
   id: string;
   name: string;
@@ -19,6 +20,23 @@ interface Place {
   distance?: number;
 }
 
+// Type-safe props for PlaceCard2
+interface PlaceCardProps {
+  placeId: string;
+  name: string;
+  description: string;
+  location: string;
+  imageSrc: string;
+  priceMin: number;
+  priceMax: number;
+  categories: string[];
+  moods: string[];
+  likes: number;
+  avatarSrc: string;
+  username: string;
+  distance?: number; // optional
+}
+
 export default function ClosestPlacesPage() {
   const [places, setPlaces] = useState<Place[]>([]);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -30,7 +48,9 @@ export default function ClosestPlacesPage() {
         (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
         () => setLoading(false)
       );
-    } else setLoading(false);
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -91,7 +111,7 @@ export default function ClosestPlacesPage() {
             likes={0}
             avatarSrc="/default-avatar.png"
             username={place.name}
-            distance={place.distance} // optional prop added to PlaceCard2 if needed
+            distance={place.distance} // now supported in PlaceCard2
           />
         ))}
       </div>
@@ -99,8 +119,9 @@ export default function ClosestPlacesPage() {
   );
 }
 
+// Helper to calculate distance between coordinates
 function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371;
+  const R = 6371; // Radius of the Earth in km
   const dLat = deg2rad(lat2 - lat1);
   const dLon = deg2rad(lon2 - lon1);
   const a =
