@@ -102,8 +102,8 @@ export default function PlacesPage() {
         place.categories.some((c) => filters.selectedCategories.includes(c));
 
       const matchesPrice = rangesOverlap(
-        place.priceMin,
-        place.priceMax,
+        place.priceMin ?? 0, // ✅ ensure number
+        place.priceMax ?? 0, // ✅ ensure number
         filters.priceRange[0],
         filters.priceRange[1]
       );
