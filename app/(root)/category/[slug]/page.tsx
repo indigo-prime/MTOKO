@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import CombinedSearchFilter4, { FilterValues } from "@/components/CombinedSearchFilter4";
@@ -114,8 +115,9 @@ export default function CategoryPage() {
           .eq("PlaceMainCategory.mainCategoryId", mainCat.id);
 
         let rawPlaces: RawPlace[] = [];
+
         if (placeErr || !data) {
-          // Fallback query
+          // fallback query
           const { data: fallbackData, error: fallbackError } = await supabase
             .from("Place")
             .select(`
@@ -138,8 +140,8 @@ export default function CategoryPage() {
             priceMin: p.priceMin ?? null,
             priceMax: p.priceMax ?? null,
             PlaceSubCategory: Array.isArray(p.PlaceSubCategory)
-              ? p.PlaceSubCategory.map((sc) => ({
-                  subCategory: sc.subCategory?.[0] || null, // Take first subCategory or null
+              ? p.PlaceSubCategory.map((psc) => ({
+                  subCategory: psc.subCategory?.[0] || null,
                 }))
               : null,
             PlaceMainCategory: Array.isArray(p.PlaceMainCategory)
@@ -149,9 +151,32 @@ export default function CategoryPage() {
               : null,
           }));
         } else {
-          rawPlaces = data as RawPlace[];
+          // Transform data to match RawPlace type
+          rawPlaces = (data as RawSupabasePlace[]).map((p) => ({
+            id: String(p.id),
+            name: p.name ?? null,
+            description: p.description ?? null,
+            location: p.location ?? null,
+            latitude: p.latitude ?? null,
+            longitude: p.longitude ?? null,
+            moods: Array.isArray(p.moods) ? p.moods : null,
+            imageUrls: Array.isArray(p.imageUrls) ? p.imageUrls : null,
+            priceMin: p.priceMin ?? null,
+            priceMax: p.priceMax ?? null,
+            PlaceSubCategory: Array.isArray(p.PlaceSubCategory)
+              ? p.PlaceSubCategory.map((psc) => ({
+                  subCategory: psc.subCategory?.[0] || null,
+                }))
+              : null,
+            PlaceMainCategory: Array.isArray(p.PlaceMainCategory)
+              ? p.PlaceMainCategory.map((pm) => ({
+                  mainCategoryId: String(pm.mainCategoryId ?? ""),
+                }))
+              : null,
+          }));
         }
 
+        // Map to UI
         const mapped: UiPlace[] = rawPlaces.map((p) => ({
           id: p.id,
           name: p.name ?? "Unknown Place",
@@ -201,7 +226,7 @@ export default function CategoryPage() {
         place.priceMin,
         place.priceMax,
         filters.priceRange[0],
-        filters.priceRange[1],
+        filters.priceRange[1]
       );
       return matchesSearch && matchesMood && matchesCategory && matchesPrice;
     });
