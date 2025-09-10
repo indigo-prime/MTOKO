@@ -6,7 +6,7 @@ import CombinedSearchFilter4, { FilterValues } from "@/components/CombinedSearch
 import PlaceCard2 from "@/components/PlaceCard2";
 import { supabase } from "@/lib/supabase";
 
-// Map slugs to MainCategoryEnum
+// Map pretty slugs -> MainCategoryEnum
 const SLUG_TO_ENUM = {
   food: "FOOD_PACK",
   family: "FAMILY_AND_KIDS",
@@ -90,7 +90,7 @@ export default function CategoryPage() {
         if (mcErr) throw new Error(`Failed to fetch main category: ${mcErr.message}`);
         if (!mainCat) throw new Error("Main category not found");
 
-        // Fetch places
+        // Fetch places linked to main category
         const { data, error: placeErr } = await supabase
           .from("Place")
           .select(`
@@ -104,37 +104,43 @@ export default function CategoryPage() {
 
         if (placeErr || !data) {
           // Fallback query
-          const fallback = await supabase
-            .from("Place")
-            .select(`
-              id,name,description,location,latitude,longitude,moods,priceMin,priceMax,imageUrls,
-              PlaceSubCategory(subCategory(name)),
-              PlaceMainCategory(mainCategoryId)
-            `);
+          const fallback = await supabase.from("Place").select(`
+            id,name,description,location,latitude,longitude,moods,priceMin,priceMax,imageUrls,
+            PlaceSubCategory(subCategory(name)),
+            PlaceMainCategory(mainCategoryId)
+          `);
 
           if (fallback.error) throw new Error(`Failed to load places: ${fallback.error.message}`);
 
-          // Ensure type matches RawPlace
-          rawPlaces = (fallback.data as RawPlace[])
-            .map((p) => ({
-              ...p,
-              PlaceSubCategory: Array.isArray(p.PlaceSubCategory)
-                ? p.PlaceSubCategory.map((sc) => ({
-                    subCategory:
-                      sc?.subCategory && !Array.isArray(sc.subCategory)
-                        ? { name: sc.subCategory.name ?? "" }
-                        : null,
-                  }))
-                : [],
-            }))
-            .filter((p) =>
-              (p.PlaceMainCategory ?? []).some((pm) => pm?.mainCategoryId === mainCat.id)
-            );
+          rawPlaces = (fallback.data ?? []).map((p) => ({
+            id: String(p.id),
+            name: p.name ?? null,
+            description: p.description ?? null,
+            location: p.location ?? null,
+            latitude: p.latitude ?? null,
+            longitude: p.longitude ?? null,
+            moods: Array.isArray(p.moods) ? p.moods : null,
+            imageUrls: Array.isArray(p.imageUrls) ? p.imageUrls : null,
+            priceMin: p.priceMin ?? null,
+            priceMax: p.priceMax ?? null,
+            PlaceSubCategory: Array.isArray(p.PlaceSubCategory)
+              ? p.PlaceSubCategory.map((sc) => ({
+                  subCategory:
+                    sc?.subCategory && sc.subCategory.name
+                      ? { name: String(sc.subCategory.name) }
+                      : null,
+                }))
+              : null,
+            PlaceMainCategory: Array.isArray(p.PlaceMainCategory)
+              ? p.PlaceMainCategory.map((pm) => ({
+                  mainCategoryId: String(pm?.mainCategoryId ?? ""),
+                }))
+              : null,
+          }));
         } else {
           rawPlaces = data as RawPlace[];
         }
 
-        // Map to UiPlace
         const mapped: UiPlace[] = rawPlaces.map((p) => ({
           id: p.id,
           name: p.name ?? "Unknown Place",
