@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import CombinedSearchFilter4, { FilterValues } from "@/components/CombinedSearchFilter4";
@@ -53,7 +52,6 @@ type UiPlace = {
 export default function CategoryPage() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug;
-
   const mainEnum: MainCategoryEnumType | undefined =
     slug && slug in SLUG_TO_ENUM ? SLUG_TO_ENUM[slug as keyof typeof SLUG_TO_ENUM] : undefined;
 
@@ -63,7 +61,6 @@ export default function CategoryPage() {
     selectedCategories: [],
     priceRange: [2000, 10000],
   });
-
   const [places, setPlaces] = useState<UiPlace[]>([]);
   const [loading, setLoading] = useState(true);
   const [errMsg, setErrMsg] = useState<string | null>(null);
@@ -83,7 +80,7 @@ export default function CategoryPage() {
         // Fetch main category
         const { data: mainCat, error: mcErr } = await supabase
           .from("MainCategory")
-          .select("id,name")
+          .select("id, name")
           .eq("name", mainEnum)
           .maybeSingle();
 
@@ -94,25 +91,26 @@ export default function CategoryPage() {
         const { data, error: placeErr } = await supabase
           .from("Place")
           .select(`
-            id,name,description,location,latitude,longitude,moods,priceMin,priceMax,imageUrls,
+            id, name, description, location, latitude, longitude, moods, priceMin, priceMax, imageUrls,
             PlaceSubCategory(subCategory(name)),
             PlaceMainCategory!inner(mainCategoryId)
           `)
           .eq("PlaceMainCategory.mainCategoryId", mainCat.id);
 
         let rawPlaces: RawPlace[] = [];
-
         if (placeErr || !data) {
           // Fallback query
-          const fallback = await supabase.from("Place").select(`
-            id,name,description,location,latitude,longitude,moods,priceMin,priceMax,imageUrls,
-            PlaceSubCategory(subCategory(name)),
-            PlaceMainCategory(mainCategoryId)
-          `);
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from("Place")
+            .select(`
+              id, name, description, location, latitude, longitude, moods, priceMin, priceMax, imageUrls,
+              PlaceSubCategory(subCategory(name)),
+              PlaceMainCategory(mainCategoryId)
+            `);
 
-          if (fallback.error) throw new Error(`Failed to load places: ${fallback.error.message}`);
+          if (fallbackError) throw new Error(`Failed to load places: ${fallbackError.message}`);
 
-          rawPlaces = (fallback.data ?? []).map((p) => ({
+          rawPlaces = (fallbackData ?? []).map((p: any) => ({
             id: String(p.id),
             name: p.name ?? null,
             description: p.description ?? null,
@@ -124,15 +122,14 @@ export default function CategoryPage() {
             priceMin: p.priceMin ?? null,
             priceMax: p.priceMax ?? null,
             PlaceSubCategory: Array.isArray(p.PlaceSubCategory)
-              ? p.PlaceSubCategory.map((sc) => ({
-                  subCategory:
-                    sc?.subCategory && sc.subCategory.name
-                      ? { name: String(sc.subCategory.name) }
-                      : null,
+              ? p.PlaceSubCategory.map((sc: any) => ({
+                  subCategory: sc?.subCategory && typeof sc.subCategory === "object" && sc.subCategory.name
+                    ? { name: String(sc.subCategory.name) }
+                    : null,
                 }))
               : null,
             PlaceMainCategory: Array.isArray(p.PlaceMainCategory)
-              ? p.PlaceMainCategory.map((pm) => ({
+              ? p.PlaceMainCategory.map((pm: any) => ({
                   mainCategoryId: String(pm?.mainCategoryId ?? ""),
                 }))
               : null,
@@ -174,29 +171,24 @@ export default function CategoryPage() {
 
   const filteredPlaces = useMemo(() => {
     const term = filters.searchTerm.toLowerCase().trim();
-
     return places.filter((place) => {
       const matchesSearch =
         term === "" ||
         place.name.toLowerCase().includes(term) ||
         place.description.toLowerCase().includes(term) ||
         place.location.toLowerCase().includes(term);
-
       const matchesMood =
         filters.selectedMood === "All" ||
         place.moods.map((m) => m.toLowerCase()).includes(filters.selectedMood.toLowerCase());
-
       const matchesCategory =
         filters.selectedCategories.length === 0 ||
         place.categories.some((c) => filters.selectedCategories.includes(c));
-
       const matchesPrice = rangesOverlap(
         place.priceMin,
         place.priceMax,
         filters.priceRange[0],
-        filters.priceRange[1]
+        filters.priceRange[1],
       );
-
       return matchesSearch && matchesMood && matchesCategory && matchesPrice;
     });
   }, [places, filters]);
