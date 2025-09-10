@@ -49,6 +49,22 @@ type UiPlace = {
   likes: number;
 };
 
+// Interface for raw Supabase data to avoid `any`
+interface RawSupabasePlace {
+  id: string | number;
+  name: string | null;
+  description: string | null;
+  location: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  moods: string[] | null;
+  imageUrls: string[] | null;
+  priceMin: number | null;
+  priceMax: number | null;
+  PlaceSubCategory: { subCategory: { name: string } | null }[] | null;
+  PlaceMainCategory: { mainCategoryId: string | number }[] | null;
+}
+
 export default function CategoryPage() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug;
@@ -110,7 +126,7 @@ export default function CategoryPage() {
 
           if (fallbackError) throw new Error(`Failed to load places: ${fallbackError.message}`);
 
-          rawPlaces = (fallbackData ?? []).map((p: any) => ({
+          rawPlaces = (fallbackData ?? []).map((p: RawSupabasePlace) => ({
             id: String(p.id),
             name: p.name ?? null,
             description: p.description ?? null,
@@ -122,15 +138,15 @@ export default function CategoryPage() {
             priceMin: p.priceMin ?? null,
             priceMax: p.priceMax ?? null,
             PlaceSubCategory: Array.isArray(p.PlaceSubCategory)
-              ? p.PlaceSubCategory.map((sc: any) => ({
+              ? p.PlaceSubCategory.map((sc) => ({
                   subCategory: sc?.subCategory && typeof sc.subCategory === "object" && sc.subCategory.name
                     ? { name: String(sc.subCategory.name) }
                     : null,
                 }))
               : null,
             PlaceMainCategory: Array.isArray(p.PlaceMainCategory)
-              ? p.PlaceMainCategory.map((pm: any) => ({
-                  mainCategoryId: String(pm?.mainCategoryId ?? ""),
+              ? p.PlaceMainCategory.map((pm) => ({
+                  mainCategoryId: String(pm.mainCategoryId ?? ""),
                 }))
               : null,
           }));
