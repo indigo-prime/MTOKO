@@ -36,7 +36,7 @@ export default function PlacesPage() {
     async function fetchPlaces() {
       try {
         const { data, error: fetchError } = await supabase
-          .from<SupabasePlace>("Place")
+          .from("Place") // ✅ removed <SupabasePlace>
           .select(`
             *,
             PlaceSubCategory (SubCategory (name)),
@@ -49,7 +49,9 @@ export default function PlacesPage() {
           return;
         }
 
-        const mappedPlaces: Place[] = (data ?? []).map((place) => ({
+        const typedData = (data ?? []) as SupabasePlace[];
+
+        const mappedPlaces: Place[] = typedData.map((place) => ({
           id: place.id,
           name: place.name ?? "Unknown Place",
           categories: (place.PlaceSubCategory ?? []).map(
