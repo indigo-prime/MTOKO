@@ -6,7 +6,7 @@ import CombinedSearchFilter4, { FilterValues } from "@/components/CombinedSearch
 import PlaceCard2 from "@/components/PlaceCard2";
 import { supabase } from "@/lib/supabase";
 
-// Map pretty slugs -> MainCategoryEnum
+// Map slugs to MainCategoryEnum
 const SLUG_TO_ENUM = {
   food: "FOOD_PACK",
   family: "FAMILY_AND_KIDS",
@@ -90,7 +90,7 @@ export default function CategoryPage() {
         if (mcErr) throw new Error(`Failed to fetch main category: ${mcErr.message}`);
         if (!mainCat) throw new Error("Main category not found");
 
-        // Fetch places linked to main category
+        // Fetch places
         const { data, error: placeErr } = await supabase
           .from("Place")
           .select(`
@@ -103,6 +103,7 @@ export default function CategoryPage() {
         let rawPlaces: RawPlace[] = [];
 
         if (placeErr || !data) {
+          // Fallback query
           const fallback = await supabase
             .from("Place")
             .select(`
@@ -113,29 +114,27 @@ export default function CategoryPage() {
 
           if (fallback.error) throw new Error(`Failed to load places: ${fallback.error.message}`);
 
-          rawPlaces = (fallback.data ?? []).map((p: any) => ({
-            ...p,
-            PlaceSubCategory: Array.isArray(p.PlaceSubCategory)
-              ? p.PlaceSubCategory.map((sc: any) => ({
-                  subCategory: sc?.subCategory && !Array.isArray(sc.subCategory)
-                    ? { name: sc.subCategory.name ?? "" }
-                    : null,
-                }))
-              : [],
-          })).filter((p) =>
-            (p.PlaceMainCategory ?? []).some((pm) => pm?.mainCategoryId === mainCat.id)
-          );
+          // Ensure type matches RawPlace
+          rawPlaces = (fallback.data as RawPlace[])
+            .map((p) => ({
+              ...p,
+              PlaceSubCategory: Array.isArray(p.PlaceSubCategory)
+                ? p.PlaceSubCategory.map((sc) => ({
+                    subCategory:
+                      sc?.subCategory && !Array.isArray(sc.subCategory)
+                        ? { name: sc.subCategory.name ?? "" }
+                        : null,
+                  }))
+                : [],
+            }))
+            .filter((p) =>
+              (p.PlaceMainCategory ?? []).some((pm) => pm?.mainCategoryId === mainCat.id)
+            );
         } else {
-          rawPlaces = (data as RawPlace[]).map((p) => ({
-            ...p,
-            PlaceSubCategory: Array.isArray(p.PlaceSubCategory)
-              ? p.PlaceSubCategory.map((sc) => ({
-                  subCategory: sc?.subCategory ?? null,
-                }))
-              : [],
-          }));
+          rawPlaces = data as RawPlace[];
         }
 
+        // Map to UiPlace
         const mapped: UiPlace[] = rawPlaces.map((p) => ({
           id: p.id,
           name: p.name ?? "Unknown Place",
