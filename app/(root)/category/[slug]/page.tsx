@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -16,7 +14,7 @@ const SLUG_TO_ENUM = {
   "arts-and-culture": "ARTS_AND_CULTURE",
   "nature-and-outdoor": "NATURE_AND_OUTDOOR",
   "shopping-and-lifestyle": "SHOPPING_AND_LIFESTYLE",
-  "events-and-experiences": "EVENTS_AND_EXPERIENCE",
+  "events-and-experiences": "EVENTS_AND_EXPERIENCES",
 } as const;
 
 type MainCategoryEnumType = typeof SLUG_TO_ENUM[keyof typeof SLUG_TO_ENUM];
@@ -55,7 +53,10 @@ type UiPlace = {
 export default function CategoryPage() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug;
-  const mainEnum: MainCategoryEnumType | undefined = slug ? SLUG_TO_ENUM[slug] : undefined;
+
+  // Type-safe enum lookup
+  const mainEnum: MainCategoryEnumType | undefined =
+    slug && slug in SLUG_TO_ENUM ? SLUG_TO_ENUM[slug as keyof typeof SLUG_TO_ENUM] : undefined;
 
   const [filters, setFilters] = useState<FilterValues>({
     searchTerm: "",
@@ -80,23 +81,17 @@ export default function CategoryPage() {
         setLoading(true);
         setErrMsg(null);
 
+        // Fetch main category
         const { data: mainCat, error: mcErr } = await supabase
           .from("MainCategory")
           .select("id,name")
           .eq("name", mainEnum)
           .maybeSingle();
 
-        if (mcErr) {
-          setErrMsg(`Failed to fetch main category: ${mcErr.message}`);
-          setLoading(false);
-          return;
-        }
-        if (!mainCat) {
-          setErrMsg("Main category not found");
-          setLoading(false);
-          return;
-        }
+        if (mcErr) throw new Error(`Failed to fetch main category: ${mcErr.message}`);
+        if (!mainCat) throw new Error("Main category not found");
 
+        // Fetch places linked to main category
         const { data, error: placeErr } = await supabase
           .from("Place")
           .select(`
@@ -118,13 +113,8 @@ export default function CategoryPage() {
               PlaceMainCategory(mainCategoryId)
             `);
 
-          if (fallback.error) {
-            setErrMsg(`Failed to load places: ${fallback.error.message}`);
-            setLoading(false);
-            return;
-          }
+          if (fallback.error) throw new Error(`Failed to load places: ${fallback.error.message}`);
 
-          // Strict type casting
           rawPlaces = (fallback.data as RawPlace[]).filter((p) =>
             (p.PlaceMainCategory ?? []).some((pm) => pm?.mainCategoryId === mainCat.id)
           );
@@ -158,7 +148,7 @@ export default function CategoryPage() {
         setLoading(false);
       }
     })();
-  }, [mainEnum, slug]);
+  }, [mainEnum]);
 
   const rangesOverlap = (placeMin: number, placeMax: number, selMin: number, selMax: number) =>
     placeMax >= selMin && placeMin <= selMax;
