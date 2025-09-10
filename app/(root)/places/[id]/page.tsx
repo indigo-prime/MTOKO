@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 
+// Type for a Place
 interface Place {
   id: string;
   name: string;
@@ -29,13 +30,15 @@ interface Place {
 
 // ❌ Remove "use client" because this is a server component
 export default async function PlaceDetail({ params }: { params: Promise<{ id: string }> }) {
+  // Server-side auth check
   const session = await auth();
   if (!session) redirect("/sign-in");
 
   const { id } = await params;
 
+  // Fetch place data from Supabase
   const { data, error } = await supabase
-    .from("Place") // ❌ removed <SupabasePlace> type arg
+    .from("Place") // Do NOT use <SupabasePlace> here
     .select(`
       *,
       owner:User(name, image),
@@ -51,23 +54,25 @@ export default async function PlaceDetail({ params }: { params: Promise<{ id: st
 
   const place = data as Place;
 
+  // Combine main & sub categories
   const categories = [
     ...place.placeMainCategories.map((c) => c.mainCategory.name),
     ...place.placeSubCategories.map((c) => c.subCategory.name),
   ];
 
+  // Map embed URL with safe defaults
   const mapSrc = `https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d15000!2d${
     place.longitude ?? 39.28
   }!3d${place.latitude ?? -6.8}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2stz!4v1724071234567`;
 
   return (
-    <div className="grid justify-items-center mt-6 w-full max-w-[935px] mx-auto">
+    <div className="grid justify-items-center mt-6 w-full max-w-[935px] mx-auto gap-6">
       <PlaceCard2
         placeId={place.id}
-        username={place.name || "owner"}
-        avatarSrc={place.imageUrls?.[0] || "/images/avatars/default.png"} // safe fallback
+        username={place.owner?.name || "owner"}
+        avatarSrc={place.owner?.image || "/images/avatars/default.png"}
         name={place.name}
-        imageSrc={place.imageUrls?.[0] || "/placeholder.jpg"} // safe fallback
+        imageSrc={place.imageUrls?.[0] || "/placeholder.jpg"}
         likes={place.likes}
         location={place.location}
         categories={categories}
