@@ -6,6 +6,7 @@ import CombinedSearchFilter4, { FilterValues } from "@/components/CombinedSearch
 import PlaceCard2 from "@/components/PlaceCard2";
 import { supabase } from "@/lib/supabase";
 
+// Map slug -> Enum
 const SLUG_TO_ENUM = {
   food: "FOOD_PACK",
   family: "FAMILY_AND_KIDS",
@@ -16,7 +17,13 @@ const SLUG_TO_ENUM = {
   "events-and-experiences": "EVENTS_AND_EXPERIENCE",
 } as const;
 
-type MainCategoryEnum = typeof SLUG_TO_ENUM[keyof typeof SLUG_TO_ENUM];
+type SlugKey = keyof typeof SLUG_TO_ENUM;
+type MainCategoryEnum = (typeof SLUG_TO_ENUM)[SlugKey];
+
+// ✅ Type guard to check if slug is valid
+function isValidSlug(slug: string): slug is SlugKey {
+  return slug in SLUG_TO_ENUM;
+}
 
 type RawPlace = {
   id: string;
@@ -52,7 +59,10 @@ type UiPlace = {
 export default function CategoryPage() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug;
-  const mainEnum: MainCategoryEnum | undefined = slug ? SLUG_TO_ENUM[slug] : undefined;
+
+  // ✅ Safe enum lookup
+  const mainEnum: MainCategoryEnum | undefined =
+    slug && isValidSlug(slug) ? SLUG_TO_ENUM[slug] : undefined;
 
   const [filters, setFilters] = useState<FilterValues>({
     searchTerm: "",
@@ -120,52 +130,14 @@ export default function CategoryPage() {
             (p.PlaceMainCategory ?? []).some((pm) => pm?.mainCategoryId === mainCat.id)
           );
 
-          const mappedFallback: UiPlace[] = fallbackData.map((p) => ({
-            id: p.id,
-            name: p.name ?? "Unknown Place",
-            description: p.description ?? "",
-            location: p.location ?? "",
-            latitude: p.latitude ?? undefined,
-            longitude: p.longitude ?? undefined,
-            moods: Array.isArray(p.moods) ? p.moods : [],
-            imageSrc: p.imageUrls?.[0] ?? "/default-image.jpg",
-            avatarSrc: p.imageUrls?.[1] ?? "/default-avatar.jpg",
-            priceMin: p.priceMin ?? 0,
-            priceMax: p.priceMax ?? 0,
-            categories: (p.PlaceSubCategory ?? [])
-              .map((s) => s?.SubCategory?.name)
-              .filter(Boolean) as string[],
-            likes: 0,
-          }));
-
-          setPlaces(mappedFallback);
+          setPlaces(mapPlaces(fallbackData));
           return;
         }
 
-        const rawPlaces = data as RawPlace[];
-        const mapped: UiPlace[] = rawPlaces.map((p) => ({
-          id: p.id,
-          name: p.name ?? "Unknown Place",
-          description: p.description ?? "",
-          location: p.location ?? "",
-          latitude: p.latitude ?? undefined,
-          longitude: p.longitude ?? undefined,
-          moods: Array.isArray(p.moods) ? p.moods : [],
-          imageSrc: p.imageUrls?.[0] ?? "/default-image.jpg",
-          avatarSrc: p.imageUrls?.[1] ?? "/default-avatar.jpg",
-          priceMin: p.priceMin ?? 0,
-          priceMax: p.priceMax ?? 0,
-          categories: (p.PlaceSubCategory ?? [])
-            .map((s) => s?.SubCategory?.name)
-            .filter(Boolean) as string[],
-          likes: 0,
-        }));
-
-        setPlaces(mapped);
+        setPlaces(mapPlaces(data as RawPlace[]));
       } catch (err: unknown) {
         console.error(err);
-        if (err instanceof Error) setErrMsg(err.message);
-        else setErrMsg("Unexpected error loading places");
+        setErrMsg(err instanceof Error ? err.message : "Unexpected error loading places");
       } finally {
         setLoading(false);
       }
@@ -235,4 +207,25 @@ export default function CategoryPage() {
       </div>
     </div>
   );
+}
+
+// ✅ Extracted mapper function
+function mapPlaces(data: RawPlace[]): UiPlace[] {
+  return data.map((p) => ({
+    id: p.id,
+    name: p.name ?? "Unknown Place",
+    description: p.description ?? "",
+    location: p.location ?? "",
+    latitude: p.latitude ?? undefined,
+    longitude: p.longitude ?? undefined,
+    moods: Array.isArray(p.moods) ? p.moods : [],
+    imageSrc: p.imageUrls?.[0] ?? "/default-image.jpg",
+    avatarSrc: p.imageUrls?.[1] ?? "/default-avatar.jpg",
+    priceMin: p.priceMin ?? 0,
+    priceMax: p.priceMax ?? 0,
+    categories: (p.PlaceSubCategory ?? [])
+      .map((s) => s?.SubCategory?.name)
+      .filter(Boolean) as string[],
+    likes: 0,
+  }));
 }
