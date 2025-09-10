@@ -6,6 +6,7 @@ import CombinedSearchFilter4, { FilterValues } from "@/components/CombinedSearch
 import PlaceCard2 from "@/components/PlaceCard2";
 import { supabase } from "@/lib/supabase";
 
+// Map pretty slugs -> MainCategoryEnum
 const SLUG_TO_ENUM = {
   food: "FOOD_PACK",
   family: "FAMILY_AND_KIDS",
@@ -16,7 +17,7 @@ const SLUG_TO_ENUM = {
   "events-and-experiences": "EVENTS_AND_EXPERIENCE",
 } as const;
 
-type MainCategoryEnum = typeof SLUG_TO_ENUM[keyof typeof SLUG_TO_ENUM];
+type MainCategoryEnumType = typeof SLUG_TO_ENUM[keyof typeof SLUG_TO_ENUM];
 
 type RawPlace = {
   id: string;
@@ -29,7 +30,7 @@ type RawPlace = {
   imageUrls: string[] | null;
   priceMin: number | null;
   priceMax: number | null;
-  PlaceSubCategory?: { SubCategory?: { name: string } | null }[] | null;
+  PlaceSubCategory?: { subCategory: { name: string } | null }[] | null;
   PlaceMainCategory?: { mainCategoryId: string }[] | null;
 };
 
@@ -52,7 +53,7 @@ type UiPlace = {
 export default function CategoryPage() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug;
-  const mainEnum: MainCategoryEnum | undefined = slug ? SLUG_TO_ENUM[slug] : undefined;
+  const mainEnum: MainCategoryEnumType | undefined = slug ? SLUG_TO_ENUM[slug] : undefined;
 
   const [filters, setFilters] = useState<FilterValues>({
     searchTerm: "",
@@ -77,7 +78,6 @@ export default function CategoryPage() {
         setLoading(true);
         setErrMsg(null);
 
-        // Fetch main category
         const { data: mainCat, error: mcErr } = await supabase
           .from("MainCategory")
           .select("id,name")
@@ -86,37 +86,50 @@ export default function CategoryPage() {
 
         if (mcErr) {
           setErrMsg(`Failed to fetch main category: ${mcErr.message}`);
+          setLoading(false);
           return;
         }
         if (!mainCat) {
           setErrMsg("Main category not found");
+          setLoading(false);
           return;
         }
 
-        // Fetch places
         const { data, error: placeErr } = await supabase
           .from("Place")
           .select(`
             id,name,description,location,latitude,longitude,moods,priceMin,priceMax,imageUrls,
-            PlaceSubCategory(SubCategory(name)),
-            PlaceMainCategory(mainCategoryId)
+            PlaceSubCategory(subCategory(name)),
+            PlaceMainCategory!inner(mainCategoryId)
           `)
           .eq("PlaceMainCategory.mainCategoryId", mainCat.id);
 
-        if (placeErr) {
-          setErrMsg(`Failed to load places: ${placeErr.message}`);
-          return;
+        let rawPlaces: RawPlace[] = [];
+
+        if (placeErr || !data) {
+          // Fallback query
+          const fallback = await supabase
+            .from("Place")
+            .select(`
+              id,name,description,location,latitude,longitude,moods,priceMin,priceMax,imageUrls,
+              PlaceSubCategory(subCategory(name)),
+              PlaceMainCategory(mainCategoryId)
+            `);
+
+          if (fallback.error) {
+            setErrMsg(`Failed to load places: ${fallback.error.message}`);
+            setLoading(false);
+            return;
+          }
+
+          // Strict type casting
+          rawPlaces = (fallback.data as RawPlace[]).filter((p) =>
+            (p.PlaceMainCategory ?? []).some((pm) => pm?.mainCategoryId === mainCat.id)
+          );
+        } else {
+          rawPlaces = data as RawPlace[];
         }
 
-        // Type assertion fixed by mapping PlaceSubCategory correctly
-        const rawPlaces: RawPlace[] = (data ?? []).map((p: any) => ({
-          ...p,
-          PlaceSubCategory: (p.PlaceSubCategory ?? []).map((psc: any) => ({
-            SubCategory: psc?.SubCategory ?? null,
-          })),
-        }));
-
-        // Map to UI
         const mapped: UiPlace[] = rawPlaces.map((p) => ({
           id: p.id,
           name: p.name ?? "Unknown Place",
@@ -130,16 +143,15 @@ export default function CategoryPage() {
           priceMin: p.priceMin ?? 0,
           priceMax: p.priceMax ?? 0,
           categories: (p.PlaceSubCategory ?? [])
-            .map((psc) => psc?.SubCategory?.name)
-            .filter(Boolean) as string[],
+            .map((s) => s?.subCategory?.name)
+            .filter((c): c is string => !!c),
           likes: 0,
         }));
 
         setPlaces(mapped);
-      } catch (err: unknown) {
+      } catch (err) {
         console.error(err);
-        if (err instanceof Error) setErrMsg(err.message);
-        else setErrMsg("Unexpected error loading places");
+        setErrMsg(err instanceof Error ? err.message : "Unexpected error loading places");
       } finally {
         setLoading(false);
       }
