@@ -50,26 +50,9 @@ type UiPlace = {
   likes: number;
 };
 
-// Supabase raw type
-interface RawSupabasePlace {
-  id: string | number;
-  name: string | null;
-  description: string | null;
-  location: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  moods: string[] | null;
-  imageUrls: string[] | null;
-  priceMin: number | null;
-  priceMax: number | null;
-  PlaceSubCategory: { subCategory: { name: any }[] }[] | null;
-  PlaceMainCategory: { mainCategoryId: string | number }[] | null;
-}
-
 export default function CategoryPage() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug;
-
   const mainEnum: MainCategoryEnumType | undefined =
     slug && slug in SLUG_TO_ENUM ? SLUG_TO_ENUM[slug as keyof typeof SLUG_TO_ENUM] : undefined;
 
@@ -79,7 +62,6 @@ export default function CategoryPage() {
     selectedCategories: [],
     priceRange: [2000, 10000],
   });
-
   const [places, setPlaces] = useState<UiPlace[]>([]);
   const [loading, setLoading] = useState(true);
   const [errMsg, setErrMsg] = useState<string | null>(null);
@@ -91,11 +73,12 @@ export default function CategoryPage() {
       return;
     }
 
-    (async () => {
+    const fetchPlaces = async () => {
       try {
         setLoading(true);
         setErrMsg(null);
 
+        // Fetch main category
         const { data: mainCat, error: mcErr } = await supabase
           .from("MainCategory")
           .select("id, name")
@@ -105,7 +88,8 @@ export default function CategoryPage() {
         if (mcErr) throw new Error(`Failed to fetch main category: ${mcErr.message}`);
         if (!mainCat) throw new Error("Main category not found");
 
-        const { data, error } = await supabase
+        // Fetch places linked to main category
+        const { data, error: placeError } = await supabase
           .from("Place")
           .select(`
             id, name, description, location, latitude, longitude, moods, priceMin, priceMax, imageUrls,
@@ -114,8 +98,9 @@ export default function CategoryPage() {
           `)
           .eq("PlaceMainCategory.mainCategoryId", mainCat.id);
 
-        // Map Supabase data safely
-        const rawPlaces: RawPlace[] = (data ?? []).map((p: RawSupabasePlace) => ({
+        if (placeError) throw new Error(`Failed to fetch places: ${placeError.message}`);
+
+        const rawPlaces: RawPlace[] = (data ?? []).map((p) => ({
           id: String(p.id),
           name: p.name ?? null,
           description: p.description ?? null,
@@ -128,17 +113,14 @@ export default function CategoryPage() {
           priceMax: p.priceMax ?? null,
           PlaceSubCategory: Array.isArray(p.PlaceSubCategory)
             ? p.PlaceSubCategory.map((psc) => ({
-                subCategory: psc.subCategory?.[0] || null,
+                subCategory: psc.subCategory?.[0] ? { name: psc.subCategory[0].name } : null,
               }))
             : null,
           PlaceMainCategory: Array.isArray(p.PlaceMainCategory)
-            ? p.PlaceMainCategory.map((pm) => ({
-                mainCategoryId: String(pm.mainCategoryId ?? ""),
-              }))
+            ? p.PlaceMainCategory.map((pm) => ({ mainCategoryId: String(pm.mainCategoryId) }))
             : null,
         }));
 
-        // Transform into UI places
         const mapped: UiPlace[] = rawPlaces.map((p) => ({
           id: p.id,
           name: p.name ?? "Unknown Place",
@@ -164,7 +146,9 @@ export default function CategoryPage() {
       } finally {
         setLoading(false);
       }
-    })();
+    };
+
+    fetchPlaces();
   }, [mainEnum]);
 
   const rangesOverlap = (placeMin: number, placeMax: number, selMin: number, selMax: number) =>
