@@ -49,7 +49,7 @@ type UiPlace = {
   likes: number;
 };
 
-// Interface for raw Supabase data to avoid `any`
+// Interface for raw Supabase data
 interface RawSupabasePlace {
   id: string | number;
   name: string | null;
@@ -61,7 +61,7 @@ interface RawSupabasePlace {
   imageUrls: string[] | null;
   priceMin: number | null;
   priceMax: number | null;
-  PlaceSubCategory: { subCategory: { name: string } | null }[] | null;
+  PlaceSubCategory: { subCategory: { name: string }[] }[] | null;
   PlaceMainCategory: { mainCategoryId: string | number }[] | null;
 }
 
@@ -139,9 +139,7 @@ export default function CategoryPage() {
             priceMax: p.priceMax ?? null,
             PlaceSubCategory: Array.isArray(p.PlaceSubCategory)
               ? p.PlaceSubCategory.map((sc) => ({
-                  subCategory: sc?.subCategory && typeof sc.subCategory === "object" && sc.subCategory.name
-                    ? { name: String(sc.subCategory.name) }
-                    : null,
+                  subCategory: sc.subCategory?.[0] || null, // Take first subCategory or null
                 }))
               : null,
             PlaceMainCategory: Array.isArray(p.PlaceMainCategory)
