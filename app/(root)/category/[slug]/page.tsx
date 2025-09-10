@@ -54,7 +54,6 @@ export default function CategoryPage() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug;
 
-  // Type-safe enum lookup
   const mainEnum: MainCategoryEnumType | undefined =
     slug && slug in SLUG_TO_ENUM ? SLUG_TO_ENUM[slug as keyof typeof SLUG_TO_ENUM] : undefined;
 
@@ -104,7 +103,6 @@ export default function CategoryPage() {
         let rawPlaces: RawPlace[] = [];
 
         if (placeErr || !data) {
-          // Fallback query
           const fallback = await supabase
             .from("Place")
             .select(`
@@ -115,11 +113,27 @@ export default function CategoryPage() {
 
           if (fallback.error) throw new Error(`Failed to load places: ${fallback.error.message}`);
 
-          rawPlaces = (fallback.data as RawPlace[]).filter((p) =>
+          rawPlaces = (fallback.data ?? []).map((p: any) => ({
+            ...p,
+            PlaceSubCategory: Array.isArray(p.PlaceSubCategory)
+              ? p.PlaceSubCategory.map((sc: any) => ({
+                  subCategory: sc?.subCategory && !Array.isArray(sc.subCategory)
+                    ? { name: sc.subCategory.name ?? "" }
+                    : null,
+                }))
+              : [],
+          })).filter((p) =>
             (p.PlaceMainCategory ?? []).some((pm) => pm?.mainCategoryId === mainCat.id)
           );
         } else {
-          rawPlaces = data as RawPlace[];
+          rawPlaces = (data as RawPlace[]).map((p) => ({
+            ...p,
+            PlaceSubCategory: Array.isArray(p.PlaceSubCategory)
+              ? p.PlaceSubCategory.map((sc) => ({
+                  subCategory: sc?.subCategory ?? null,
+                }))
+              : [],
+          }));
         }
 
         const mapped: UiPlace[] = rawPlaces.map((p) => ({
