@@ -1,5 +1,4 @@
 // app/places/[id]/page.tsx
-"use client";
 
 import PlaceCard2 from "@/components/PlaceCard2";
 import PlaceMapCard from "@/components/PlaceMapCard";
@@ -28,19 +27,15 @@ interface Place {
   placeSubCategories: { subCategory: { name: string } }[];
 }
 
-export default async function PlaceDetail({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+// ❌ Remove "use client" because this is a server component
+export default async function PlaceDetail({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session) redirect("/sign-in");
 
   const { id } = await params;
 
-  // Server-side fetch
   const { data, error } = await supabase
-    .from("Place")
+    .from("Place") // ❌ removed <SupabasePlace> type arg
     .select(`
       *,
       owner:User(name, image),
@@ -52,9 +47,7 @@ export default async function PlaceDetail({
     .eq("id", id)
     .single();
 
-  if (error || !data) {
-    notFound();
-  }
+  if (error || !data) notFound();
 
   const place = data as Place;
 
@@ -72,7 +65,7 @@ export default async function PlaceDetail({
       <PlaceCard2
         placeId={place.id}
         username={place.name || "owner"}
-        avatarSrc={place.imageUrls?.[0] || "/images/avatars/default.png"} // fixed
+        avatarSrc={place.imageUrls?.[0] || "/images/avatars/default.png"} // safe fallback
         name={place.name}
         imageSrc={place.imageUrls?.[0] || "/placeholder.jpg"} // safe fallback
         likes={place.likes}
