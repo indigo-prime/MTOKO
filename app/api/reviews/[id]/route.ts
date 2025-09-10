@@ -1,17 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
 
+// DELETE /api/reviews/[id]
 export async function DELETE(
-  req: Request,
-  context: { params: Record<string, string> } // ✅ Corrected type
+  req: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthenticated" }, { status: 401 });
   }
 
-  const id = context.params.id;
+  const { id } = params;
   if (!id) {
     return NextResponse.json({ message: "Missing review ID" }, { status: 400 });
   }
