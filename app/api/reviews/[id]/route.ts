@@ -6,14 +6,14 @@ import prisma from "@/lib/db";
 // DELETE /api/reviews/[id]
 export async function DELETE(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: any // use 'any' because Next.js doesn't type this officially
 ) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthenticated" }, { status: 401 });
   }
 
-  const { id } = context.params;
+  const { id } = context.params as { id: string };
   if (!id) {
     return NextResponse.json({ message: "Missing review ID" }, { status: 400 });
   }
