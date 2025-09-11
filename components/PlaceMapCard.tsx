@@ -1,24 +1,32 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Car, MapPin } from "lucide-react";
 import type * as LeafletNS from "leaflet";
 
-// Fix: declare the module safely
+// Fix: declare module using modern style (no namespaces)
 declare module "leaflet-routing-machine" {
   import * as L from "leaflet";
+
   export namespace Routing {
     interface PlanOptions extends L.Routing.PlanOptions {}
     interface ControlOptions extends L.Routing.ControlOptions {}
 
-    function plan(waypoints: L.LatLng[], options?: PlanOptions): L.Routing.Plan;
+    function plan(
+      waypoints: L.LatLng[],
+      options?: PlanOptions
+    ): L.Routing.Plan;
+
     function control(options: ControlOptions): L.Routing.Control;
-    function osrmv1(options?: { serviceUrl?: string; profile?: string }): any;
+
+    function osrmv1(options?: {
+      serviceUrl?: string;
+      profile?: string;
+    }): L.Routing.OSRMv1;
 
     class Plan extends L.Class {}
     class Control extends L.Control {}
+    class OSRMv1 {}
   }
 }
 
@@ -36,7 +44,7 @@ export default function RestaurantMapCard({
 }: RestaurantMapCardProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletNS.Map | null>(null);
-  const routeControlRef = useRef<any>(null);
+  const routeControlRef = useRef<LeafletNS.Control | null>(null);
 
   const [leaflet, setLeaflet] = useState<typeof LeafletNS | null>(null);
 
@@ -106,7 +114,8 @@ export default function RestaurantMapCard({
   }, [leaflet, lat, lng, location]);
 
   const handleGetDirections = async () => {
-    if (!leaflet || !mapRef.current || typeof lat !== "number" || typeof lng !== "number") return;
+    if (!leaflet || !mapRef.current || typeof lat !== "number" || typeof lng !== "number")
+      return;
 
     const L = leaflet;
     const Routing = (await import("leaflet-routing-machine")).Routing;
@@ -122,7 +131,7 @@ export default function RestaurantMapCard({
       const plan = Routing.plan(
         [L.latLng(originLat, originLng), L.latLng(lat, lng)],
         {
-          createMarker: (i, wp) => L.marker(wp.latLng),
+          createMarker: (_i, wp) => L.marker(wp.latLng),
           draggableWaypoints: false,
           addWaypoints: false,
           routeWhileDragging: false,
