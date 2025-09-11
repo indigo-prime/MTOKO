@@ -1,19 +1,19 @@
+// app/api/reviews/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
-import type { RouteHandlerContext } from "next/server";
 
 // DELETE /api/reviews/[id]
 export async function DELETE(
   req: NextRequest,
-  { params }: RouteHandlerContext<{ id: string }>
+  context: { params: { id: string } }
 ) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthenticated" }, { status: 401 });
   }
 
-  const { id } = params;
+  const { id } = context.params;
   if (!id) {
     return NextResponse.json({ message: "Missing review ID" }, { status: 400 });
   }
