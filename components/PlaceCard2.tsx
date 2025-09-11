@@ -1,3 +1,4 @@
+// components/PlaceCard2.tsx
 "use client";
 
 import toast from "react-hot-toast";
@@ -25,7 +26,7 @@ interface PlaceCardProps {
   priceMin?: number;
   priceMax?: number;
   description?: string | null;
-  distance?: number; // ✅ new optional prop
+  distance?: number; // optional
   onUnsave?: () => void;
 }
 
@@ -34,7 +35,7 @@ export default function PlaceCard2({
   username = "Unknown",
   avatarSrc = "/default-avatar.png",
   name,
-  imageSrc = "/default-image.jpg",
+  imageSrc,
   likes = 0,
   location = "Unknown",
   categories = [],
@@ -48,15 +49,19 @@ export default function PlaceCard2({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [hasLiked, setHasLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(likes);
+  const [likeCount, setLikeCount] = useState<number>(likes);
   const [message, setMessage] = useState<string | null>(null);
 
   const { data: session, status } = useSession();
 
+  // Ensure imageSrc is always a string acceptable by next/image
+  const resolvedImageSrc: string = imageSrc ?? "/default-image.jpg";
+  const resolvedDescription: string = description ?? "";
+
   const truncatedDescription =
-    (description ?? "").length > 100
-      ? (description ?? "").substring(0, 100) + "..."
-      : description ?? "";
+    resolvedDescription.length > 100
+      ? resolvedDescription.substring(0, 100) + "..."
+      : resolvedDescription;
 
   const currencyFormatter = new Intl.NumberFormat("sw-TZ", {
     style: "currency",
@@ -77,8 +82,9 @@ export default function PlaceCard2({
         setHasLiked(Boolean(data.liked));
         setIsBookmarked(Boolean(data.saved));
         setLikeCount(typeof data.likeCount === "number" ? data.likeCount : likes);
-      } catch (e) {
-        console.error(e);
+      } catch (e: unknown) {
+        // keep this friendly for debugging
+        console.error("Failed to load place status:", e);
         showMessage("Failed to load user actions");
       }
     })();
@@ -114,7 +120,7 @@ export default function PlaceCard2({
 
       toast.success(data.liked ? "❤️ Place liked!" : "💔 Place unliked!");
     } catch (e) {
-      console.error(e);
+      console.error("Like error:", e);
       toast.error("Failed to update like");
     }
   };
@@ -138,7 +144,7 @@ export default function PlaceCard2({
         onUnsave();
       }
     } catch (e) {
-      console.error(e);
+      console.error("Bookmark error:", e);
       toast.error("Failed to update bookmark");
     }
   };
@@ -162,9 +168,10 @@ export default function PlaceCard2({
       </div>
 
       <div className="w-full relative">
+        {/* resolvedImageSrc is guaranteed to be a string */}
         <Image
-          src={imageSrc}
-          alt={name || "Place"}
+          src={resolvedImageSrc}
+          alt={name ?? "Place"}
           width={800}
           height={500}
           className="w-full h-64 sm:h-72 md:h-80 lg:h-96 object-cover rounded-md"
@@ -173,8 +180,8 @@ export default function PlaceCard2({
 
       <div className="px-4 pb-4">
         <p className="text-muted-foreground mb-4 flex-1">
-          {isExpanded ? description : truncatedDescription}
-          {description.length > 100 && (
+          {isExpanded ? resolvedDescription : truncatedDescription}
+          {resolvedDescription.length > 100 && (
             <Button
               variant="link"
               size="sm"
@@ -189,7 +196,7 @@ export default function PlaceCard2({
         <div className="flex items-center gap-2 text-sm text-mtoko-dark mb-4">
           <FontAwesomeIcon icon={faMapMarkerAlt} className="text-[20px] text-mtoko-secondary" />
           <span>{location}</span>
-          {distance !== undefined && <span> • {distance.toFixed(1)} km away</span>} {/* ✅ distance display */}
+          {typeof distance === "number" && <span> • {distance.toFixed(1)} km away</span>}
         </div>
 
         <div className="flex flex-col gap-2 mb-4">
@@ -243,6 +250,8 @@ export default function PlaceCard2({
             {currencyFormatter.format(priceMin)} - {currencyFormatter.format(priceMax)}
           </Badge>
         </div>
+
+        {message && <div className="mt-2 text-sm text-red-500">{message}</div>}
       </div>
     </div>
   );
