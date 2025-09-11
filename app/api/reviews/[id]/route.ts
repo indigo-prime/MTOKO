@@ -3,19 +3,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
 
-// Type the context parameter
-interface RouteContext {
-  params: { id: string };
-}
-
 // DELETE /api/reviews/[id]
-export async function DELETE(req: NextRequest, context: RouteContext) {
+export async function DELETE(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthenticated" }, { status: 401 });
   }
 
-  const { id } = context.params;
+  // Extract the id from the URL
+  const url = new URL(req.url);
+  const segments = url.pathname.split("/");
+  const id = segments[segments.length - 1]; // last segment
+
   if (!id) {
     return NextResponse.json({ message: "Missing review ID" }, { status: 400 });
   }
