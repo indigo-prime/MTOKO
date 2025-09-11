@@ -26,7 +26,6 @@ export interface FilterValues {
 
 interface CombinedSearchFilterProps {
   onFilterChange: (filters: FilterValues) => void;
-  /** Optional: filter subcategories by main category enum */
   mainCategoryEnum?: string;
 }
 
@@ -86,7 +85,6 @@ export default function CombinedSearchFilter4({
         let subCategoriesData: SubCategoryRow[] = [];
 
         if (mainCategoryEnum) {
-          // Get main category ID
           const { data: mainCat, error: mcErr } = await supabase
             .from("MainCategory")
             .select("id,name")
@@ -109,7 +107,6 @@ export default function CombinedSearchFilter4({
           if (error) throw error;
           subCategoriesData = data ?? [];
         } else {
-          // Fetch all subcategories
           const { data, error } = await supabase
             .from("SubCategory")
             .select("name,imageUrl")
@@ -119,15 +116,18 @@ export default function CombinedSearchFilter4({
           subCategoriesData = data ?? [];
         }
 
+        // ✅ Properly typed mapping
         const mappedCategories: Category[] = subCategoriesData.map((item: SubCategoryRow) => ({
           name: item.name,
           image: item.imageUrl,
         }));
 
         setCategories(mappedCategories);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Error fetching categories:", err);
-        setCategoryError(err?.message ?? "Unexpected error occurred while loading categories");
+        setCategoryError(
+          (err as { message?: string })?.message ?? "Unexpected error occurred while loading categories"
+        );
         setCategories([]);
       } finally {
         setLoadingCategories(false);
@@ -137,7 +137,6 @@ export default function CombinedSearchFilter4({
     fetchCategories();
   }, [mainCategoryEnum]);
 
-  // Emit filter changes
   useEffect(() => {
     onFilterChange({
       searchTerm,
@@ -194,17 +193,11 @@ export default function CombinedSearchFilter4({
                   <SelectValue placeholder="Select Mood" />
                 </SelectTrigger>
                 <SelectContent>
-                  {moods.length > 0 ? (
-                    moods.map((mood) => (
-                      <SelectItem key={mood} value={mood}>
-                        {mood.replace("_", " ")}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="none" disabled>
-                      No moods available
+                  {moods.map((mood) => (
+                    <SelectItem key={mood} value={mood}>
+                      {mood.replace("_", " ")}
                     </SelectItem>
-                  )}
+                  ))}
                 </SelectContent>
               </Select>
             </div>
