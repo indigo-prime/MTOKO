@@ -33,11 +33,6 @@ interface Category {
   image: string | null;
 }
 
-interface SubCategoryRow {
-  name: string;
-  imageUrl: string | null;
-}
-
 export default function CombinedSearchFilter3({ onFilterChange }: CombinedSearchFilterProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
@@ -75,7 +70,7 @@ export default function CombinedSearchFilter3({ onFilterChange }: CombinedSearch
     async function fetchCategories() {
       try {
         const { data, error } = await supabase
-          .from<SubCategoryRow, SubCategoryRow>("SubCategory") // Fixed: provide 2 type arguments
+          .from("SubCategory")
           .select("name, imageUrl");
 
         if (error) {
@@ -84,7 +79,7 @@ export default function CombinedSearchFilter3({ onFilterChange }: CombinedSearch
           return;
         }
 
-        const fetchedCategories: Category[] = (data ?? []).map((item) => ({
+        const fetchedCategories: Category[] = (data ?? []).map((item: any) => ({
           name: item.name,
           image: item.imageUrl,
         }));
