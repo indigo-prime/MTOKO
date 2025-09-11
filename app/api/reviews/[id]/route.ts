@@ -1,29 +1,35 @@
-// app/api/reviews/[id]/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 
-// DELETE /api/reviews/[id]
-export async function DELETE(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ message: "Unauthenticated" }, { status: 401 });
-  }
+// Define type for review returned by Prisma
+interface ReviewItem {
+    id: string;
+    comment: string | null;
+    rating: number;
+    userId: string;
+}
 
-  // Extract the id from the URL
-  const url = new URL(req.url);
-  const segments = url.pathname.split("/");
-  const id = segments[segments.length - 1]; // last segment
+export async function GET() {
+    try {
+        const reviews: ReviewItem[] = await prisma.review.findMany({
+            select: {
+                id: true,
+                comment: true,
+                rating: true,
+                userId: true,
+            },
+        });
 
-  if (!id) {
-    return NextResponse.json({ message: "Missing review ID" }, { status: 400 });
-  }
-
-  const review = await prisma.review.findUnique({ where: { id } });
-  if (!review || review.userId !== session.user.id) {
-    return NextResponse.json({ message: "Not allowed" }, { status: 403 });
-  }
-
-  await prisma.review.delete({ where: { id } });
-  return NextResponse.json({ success: true });
+        return NextResponse.json(
+            reviews.map((r: ReviewItem) => ({
+                id: r.id,
+                content: r.comment,
+                rating: r.rating,
+                userId: r.userId,
+            }))
+        );
+    } catch (err) {
+        console.error(err);
+        return NextResponse.json({ error: "Failed to fetch reviews" }, { status: 500 });
+    }
 }
