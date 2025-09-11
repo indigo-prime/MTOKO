@@ -4,53 +4,38 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Car, MapPin } from "lucide-react";
 import type * as LeafletNS from "leaflet";
+import Image from "next/image";
 
-// Inline module declaration for leaflet-routing-machine (no namespace)
-declare module "leaflet-routing-machine" {
-  import * as L from "leaflet";
-
-  export function plan(
-    waypoints: L.LatLng[],
-    options?: L.Routing.PlanOptions
-  ): L.Routing.Plan;
-
-  export function control(options: L.Routing.ControlOptions): L.Routing.Control;
-
-  export function osrmv1(options?: { serviceUrl?: string; profile?: string }): L.Routing.OSRMv1;
-
-  export class Plan extends L.Class {}
-  export class Control extends L.Control {}
-  export class OSRMv1 {}
-}
+// Treat leaflet-routing-machine as `any` (safe for TS)
+let Routing: any;
 
 interface RestaurantMapCardProps {
-  mapSrc?: string;
   location: string;
   lat?: number;
   lng?: number;
 }
 
-export default function RestaurantMapCard({
-  location,
-  lat,
-  lng,
-}: RestaurantMapCardProps) {
+export default function RestaurantMapCard({ location, lat, lng }: RestaurantMapCardProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletNS.Map | null>(null);
-  const routeControlRef = useRef<LeafletNS.Control | null>(null);
+  const routeControlRef = useRef<any>(null);
+
   const [leaflet, setLeaflet] = useState<typeof LeafletNS | null>(null);
 
-  // Load Leaflet and Routing Machine dynamically
+  // Load Leaflet + leaflet-routing-machine dynamically
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
-      const [{ default: L }] = await Promise.all([
+      const [{ default: L }, LRM] = await Promise.all([
         import("leaflet"),
-        import("leaflet-routing-machine"), // side effect import
+        import("leaflet-routing-machine"),
       ]);
+
       if (cancelled) return;
+
       setLeaflet(L);
+      Routing = LRM; // assign globally in this module
     })();
 
     return () => {
@@ -66,18 +51,9 @@ export default function RestaurantMapCard({
 
     const DefaultIcon = L.Icon.Default;
     DefaultIcon.mergeOptions({
-      iconRetinaUrl: new URL(
-        "leaflet/dist/images/marker-icon-2x.png",
-        import.meta.url
-      ).toString(),
-      iconUrl: new URL(
-        "leaflet/dist/images/marker-icon.png",
-        import.meta.url
-      ).toString(),
-      shadowUrl: new URL(
-        "leaflet/dist/images/marker-shadow.png",
-        import.meta.url
-      ).toString(),
+      iconRetinaUrl: new URL("leaflet/dist/images/marker-icon-2x.png", import.meta.url).toString(),
+      iconUrl: new URL("leaflet/dist/images/marker-icon.png", import.meta.url).toString(),
+      shadowUrl: new URL("leaflet/dist/images/marker-shadow.png", import.meta.url).toString(),
     });
 
     const fallbackCenter: [number, number] = [-6.7924, 39.2083];
@@ -93,8 +69,12 @@ export default function RestaurantMapCard({
       maxZoom: 19,
     }).addTo(map);
 
-    if (destExists)
-      L.marker([lat!, lng!]).addTo(map).bindPopup(`<b>${location}</b>`).openPopup();
+    if (destExists) {
+      L.marker([lat!, lng!])
+        .addTo(map)
+        .bindPopup(`<b>${location}</b>`)
+        .openPopup();
+    }
 
     mapRef.current = map;
 
@@ -104,14 +84,12 @@ export default function RestaurantMapCard({
     };
   }, [leaflet, lat, lng, location]);
 
-  // Get directions using Leaflet Routing Machine
-  const handleGetDirections = async () => {
-    if (!leaflet || !mapRef.current || typeof lat !== "number" || typeof lng !== "number")
+  // Handle directions using leaflet-routing-machine
+  const handleGetDirections = () => {
+    if (!leaflet || !Routing || !mapRef.current || typeof lat !== "number" || typeof lng !== "number")
       return;
 
     const L = leaflet;
-    const Routing = (await import("leaflet-routing-machine")) as typeof import("leaflet-routing-machine");
-
     const map = mapRef.current;
 
     if (routeControlRef.current) {
@@ -121,7 +99,7 @@ export default function RestaurantMapCard({
 
     const createRoute = (originLat: number, originLng: number) => {
       const plan = Routing.plan([L.latLng(originLat, originLng), L.latLng(lat, lng)], {
-        createMarker: (_i, wp) => L.marker(wp.latLng),
+        createMarker: (_i: number, wp: any) => L.marker(wp.latLng),
         draggableWaypoints: false,
         addWaypoints: false,
         routeWhileDragging: false,
@@ -159,7 +137,7 @@ export default function RestaurantMapCard({
     }
   };
 
-  // Ride with Bolt
+  // Handle Bolt ride deep link
   const handleRideWithBolt = () => {
     if (typeof lat !== "number" || typeof lng !== "number") return;
 
