@@ -75,7 +75,7 @@ export default function CombinedSearchFilter3({ onFilterChange }: CombinedSearch
     async function fetchCategories() {
       try {
         const { data, error } = await supabase
-          .from<SubCategoryRow>("SubCategory")
+          .from<SubCategoryRow, SubCategoryRow>("SubCategory") // Fixed: provide 2 type arguments
           .select("name, imageUrl");
 
         if (error) {
