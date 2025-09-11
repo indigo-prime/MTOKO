@@ -83,20 +83,17 @@ export default function CombinedSearchFilter4({
         setLoadingCategories(true);
         setCategoryError(null);
 
+        let subCategoriesData: SubCategoryRow[] = [];
+
         if (mainCategoryEnum) {
-          // Fetch main category to get its ID
+          // Get main category ID
           const { data: mainCat, error: mcErr } = await supabase
             .from("MainCategory")
             .select("id,name")
             .eq("name", mainCategoryEnum)
             .maybeSingle();
 
-          if (mcErr) {
-            setCategoryError(`Failed to load main category: ${mcErr.message}`);
-            setCategories([]);
-            return;
-          }
-
+          if (mcErr) throw mcErr;
           if (!mainCat) {
             setCategoryError("Main category not found");
             setCategories([]);
@@ -104,46 +101,33 @@ export default function CombinedSearchFilter4({
           }
 
           const { data, error } = await supabase
-            .from<SubCategoryRow>("SubCategory")
+            .from("SubCategory")
             .select("name,imageUrl")
             .eq("mainCategoryId", mainCat.id)
             .order("name", { ascending: true });
 
-          if (error) {
-            setCategoryError(`Failed to load categories: ${error.message}`);
-            setCategories([]);
-            return;
-          }
-
-          setCategories(
-            (data ?? []).map((item) => ({
-              name: item.name,
-              image: item.imageUrl,
-            }))
-          );
+          if (error) throw error;
+          subCategoriesData = data ?? [];
         } else {
-          // Fallback: all subcategories
+          // Fetch all subcategories
           const { data, error } = await supabase
-            .from<SubCategoryRow>("SubCategory")
+            .from("SubCategory")
             .select("name,imageUrl")
             .order("name", { ascending: true });
 
-          if (error) {
-            setCategoryError(`Failed to load categories: ${error.message}`);
-            setCategories([]);
-            return;
-          }
-
-          setCategories(
-            (data ?? []).map((item) => ({
-              name: item.name,
-              image: item.imageUrl,
-            }))
-          );
+          if (error) throw error;
+          subCategoriesData = data ?? [];
         }
-      } catch (err) {
-        console.error("Unexpected error fetching categories:", err);
-        setCategoryError("Unexpected error occurred while loading categories");
+
+        const mappedCategories: Category[] = subCategoriesData.map((item: SubCategoryRow) => ({
+          name: item.name,
+          image: item.imageUrl,
+        }));
+
+        setCategories(mappedCategories);
+      } catch (err: any) {
+        console.error("Error fetching categories:", err);
+        setCategoryError(err?.message ?? "Unexpected error occurred while loading categories");
         setCategories([]);
       } finally {
         setLoadingCategories(false);
