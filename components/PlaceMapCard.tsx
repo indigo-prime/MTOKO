@@ -1,32 +1,30 @@
 "use client";
+
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Car, MapPin } from "lucide-react";
 import type * as LeafletNS from "leaflet";
 
-// Fix: declare module using modern style (no namespaces)
+// ✅ Modern augmentation without namespace
 declare module "leaflet-routing-machine" {
   import * as L from "leaflet";
 
-  export namespace Routing {
-    interface PlanOptions extends L.Routing.PlanOptions {}
-    interface ControlOptions extends L.Routing.ControlOptions {}
+  // Explicit option types instead of empty extensions
+  interface RoutingPlanOptions extends L.Routing.PlanOptions {}
+  interface RoutingControlOptions extends L.Routing.ControlOptions {}
 
+  namespace Routing {
     function plan(
       waypoints: L.LatLng[],
-      options?: PlanOptions
+      options?: RoutingPlanOptions
     ): L.Routing.Plan;
 
-    function control(options: ControlOptions): L.Routing.Control;
+    function control(options: RoutingControlOptions): L.Routing.Control;
 
     function osrmv1(options?: {
       serviceUrl?: string;
       profile?: string;
     }): L.Routing.OSRMv1;
-
-    class Plan extends L.Class {}
-    class Control extends L.Control {}
-    class OSRMv1 {}
   }
 }
 
@@ -48,13 +46,14 @@ export default function RestaurantMapCard({
 
   const [leaflet, setLeaflet] = useState<typeof LeafletNS | null>(null);
 
+  // Load Leaflet + routing machine dynamically
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
       const [{ default: L }] = await Promise.all([
         import("leaflet"),
-        import("leaflet-routing-machine"), // ensures side effects load
+        import("leaflet-routing-machine"), // side effect import
       ]);
       if (cancelled) return;
       setLeaflet(L);
@@ -65,11 +64,13 @@ export default function RestaurantMapCard({
     };
   }, []);
 
+  // Initialize map
   useEffect(() => {
     if (!leaflet || !mapContainerRef.current || mapRef.current) return;
 
     const L = leaflet;
 
+    // ✅ fix marker icons
     const DefaultIcon = L.Icon.Default;
     DefaultIcon.mergeOptions({
       iconRetinaUrl: new URL(
@@ -86,7 +87,7 @@ export default function RestaurantMapCard({
       ).toString(),
     });
 
-    const fallbackCenter: [number, number] = [-6.7924, 39.2083];
+    const fallbackCenter: [number, number] = [-6.7924, 39.2083]; // Dar es Salaam
     const destExists = typeof lat === "number" && typeof lng === "number";
 
     const map = L.map(mapContainerRef.current, {
@@ -99,11 +100,12 @@ export default function RestaurantMapCard({
       maxZoom: 19,
     }).addTo(map);
 
-    if (destExists)
+    if (destExists) {
       L.marker([lat!, lng!])
         .addTo(map)
         .bindPopup(`<b>${location}</b>`)
         .openPopup();
+    }
 
     mapRef.current = map;
 
@@ -113,15 +115,18 @@ export default function RestaurantMapCard({
     };
   }, [leaflet, lat, lng, location]);
 
+  // Directions handler
   const handleGetDirections = async () => {
-    if (!leaflet || !mapRef.current || typeof lat !== "number" || typeof lng !== "number")
+    if (!leaflet || !mapRef.current || typeof lat !== "number" || typeof lng !== "number") {
       return;
+    }
 
     const L = leaflet;
-    const Routing = (await import("leaflet-routing-machine")).Routing;
+    const { Routing } = await import("leaflet-routing-machine");
 
     const map = mapRef.current;
 
+    // remove old control if exists
     if (routeControlRef.current) {
       map.removeControl(routeControlRef.current);
       routeControlRef.current = null;
@@ -170,6 +175,7 @@ export default function RestaurantMapCard({
     }
   };
 
+  // Bolt deep link handler
   const handleRideWithBolt = () => {
     if (typeof lat !== "number" || typeof lng !== "number") return;
 
@@ -182,7 +188,9 @@ export default function RestaurantMapCard({
           () => callback(null),
           { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
-      } else callback(null);
+      } else {
+        callback(null);
+      }
     };
 
     getUserLocation((pos) => {
