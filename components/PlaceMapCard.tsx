@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 "use client";
@@ -6,7 +5,22 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Car, MapPin } from "lucide-react";
 import type * as LeafletNS from "leaflet";
-import type * as LRMNS from "leaflet-routing-machine";
+
+// Fix: declare the module safely
+declare module "leaflet-routing-machine" {
+  import * as L from "leaflet";
+  export namespace Routing {
+    interface PlanOptions extends L.Routing.PlanOptions {}
+    interface ControlOptions extends L.Routing.ControlOptions {}
+
+    function plan(waypoints: L.LatLng[], options?: PlanOptions): L.Routing.Plan;
+    function control(options: ControlOptions): L.Routing.Control;
+    function osrmv1(options?: { serviceUrl?: string; profile?: string }): any;
+
+    class Plan extends L.Class {}
+    class Control extends L.Control {}
+  }
+}
 
 interface RestaurantMapCardProps {
   mapSrc?: string;
@@ -15,25 +29,27 @@ interface RestaurantMapCardProps {
   lng?: number;
 }
 
-export default function RestaurantMapCard({ location, lat, lng }: RestaurantMapCardProps) {
+export default function RestaurantMapCard({
+  location,
+  lat,
+  lng,
+}: RestaurantMapCardProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletNS.Map | null>(null);
-  const routeControlRef = useRef<LRMNS.Routing.Control | null>(null);
+  const routeControlRef = useRef<any>(null);
 
   const [leaflet, setLeaflet] = useState<typeof LeafletNS | null>(null);
-  const [lrm, setLrm] = useState<typeof LRMNS | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
-      const [{ default: L }, _] = await Promise.all([
+      const [{ default: L }] = await Promise.all([
         import("leaflet"),
-        import("leaflet-routing-machine"),
+        import("leaflet-routing-machine"), // ensures side effects load
       ]);
       if (cancelled) return;
       setLeaflet(L);
-      setLrm((L as any).Routing);
     })();
 
     return () => {
@@ -48,9 +64,18 @@ export default function RestaurantMapCard({ location, lat, lng }: RestaurantMapC
 
     const DefaultIcon = L.Icon.Default;
     DefaultIcon.mergeOptions({
-      iconRetinaUrl: new URL("leaflet/dist/images/marker-icon-2x.png", import.meta.url).toString(),
-      iconUrl: new URL("leaflet/dist/images/marker-icon.png", import.meta.url).toString(),
-      shadowUrl: new URL("leaflet/dist/images/marker-shadow.png", import.meta.url).toString(),
+      iconRetinaUrl: new URL(
+        "leaflet/dist/images/marker-icon-2x.png",
+        import.meta.url
+      ).toString(),
+      iconUrl: new URL(
+        "leaflet/dist/images/marker-icon.png",
+        import.meta.url
+      ).toString(),
+      shadowUrl: new URL(
+        "leaflet/dist/images/marker-shadow.png",
+        import.meta.url
+      ).toString(),
     });
 
     const fallbackCenter: [number, number] = [-6.7924, 39.2083];
@@ -62,11 +87,15 @@ export default function RestaurantMapCard({ location, lat, lng }: RestaurantMapC
     });
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; OpenStreetMap contributors',
+      attribution: "&copy; OpenStreetMap contributors",
       maxZoom: 19,
     }).addTo(map);
 
-    if (destExists) L.marker([lat!, lng!]).addTo(map).bindPopup(`<b>${location}</b>`).openPopup();
+    if (destExists)
+      L.marker([lat!, lng!])
+        .addTo(map)
+        .bindPopup(`<b>${location}</b>`)
+        .openPopup();
 
     mapRef.current = map;
 
@@ -76,11 +105,13 @@ export default function RestaurantMapCard({ location, lat, lng }: RestaurantMapC
     };
   }, [leaflet, lat, lng, location]);
 
-  const handleGetDirections = () => {
+  const handleGetDirections = async () => {
+    if (!leaflet || !mapRef.current || typeof lat !== "number" || typeof lng !== "number") return;
+
     const L = leaflet;
-    const Routing = lrm;
+    const Routing = (await import("leaflet-routing-machine")).Routing;
+
     const map = mapRef.current;
-    if (!L || !Routing || !map || typeof lat !== "number" || typeof lng !== "number") return;
 
     if (routeControlRef.current) {
       map.removeControl(routeControlRef.current);
@@ -88,18 +119,28 @@ export default function RestaurantMapCard({ location, lat, lng }: RestaurantMapC
     }
 
     const createRoute = (originLat: number, originLng: number) => {
-      const plan = Routing.plan([L.latLng(originLat, originLng), L.latLng(lat, lng)], {
-        createMarker: (i, wp) => L.marker(wp.latLng),
-        draggableWaypoints: false,
-        addWaypoints: false,
-        routeWhileDragging: false,
-        show: false,
-      });
+      const plan = Routing.plan(
+        [L.latLng(originLat, originLng), L.latLng(lat, lng)],
+        {
+          createMarker: (i, wp) => L.marker(wp.latLng),
+          draggableWaypoints: false,
+          addWaypoints: false,
+          routeWhileDragging: false,
+          show: false,
+        }
+      );
 
       const control = Routing.control({
         plan,
-        lineOptions: { addWaypoints: false, extendToWaypoints: true, missingRouteTolerance: 0 },
-        router: Routing.osrmv1({ serviceUrl: "https://router.project-osrm.org/route/v1", profile: "driving" }),
+        lineOptions: {
+          addWaypoints: false,
+          extendToWaypoints: true,
+          missingRouteTolerance: 0,
+        },
+        router: Routing.osrmv1({
+          serviceUrl: "https://router.project-osrm.org/route/v1",
+          profile: "driving",
+        }),
         fitSelectedRoutes: true,
         showAlternatives: false,
         collapsible: true,
@@ -123,7 +164,9 @@ export default function RestaurantMapCard({ location, lat, lng }: RestaurantMapC
   const handleRideWithBolt = () => {
     if (typeof lat !== "number" || typeof lng !== "number") return;
 
-    const getUserLocation = (callback: (pos: { lat: number; lng: number } | null) => void) => {
+    const getUserLocation = (
+      callback: (pos: { lat: number; lng: number } | null) => void
+    ) => {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => callback({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
@@ -151,13 +194,25 @@ export default function RestaurantMapCard({ location, lat, lng }: RestaurantMapC
 
   return (
     <div className="bg-white border border-transparent rounded-lg mb-6 w-full">
-      <div ref={mapContainerRef} className="w-full h-[300px] border-0 relative z-0" />
+      <div
+        ref={mapContainerRef}
+        className="w-full h-[300px] border-0 relative z-0"
+      />
       <div className="flex gap-4 pt-2 mx-3 mb-4 mt-4">
-        <Button variant="outline" size="sm" onClick={handleGetDirections} className="flex-1 flex items-center space-x-1">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleGetDirections}
+          className="flex-1 flex items-center space-x-1"
+        >
           <MapPin className="w-4 h-4" />
           <span>GET DIRECTIONS</span>
         </Button>
-        <Button size="sm" onClick={handleRideWithBolt} className="btn-bolt flex-1 flex items-center space-x-1">
+        <Button
+          size="sm"
+          onClick={handleRideWithBolt}
+          className="btn-bolt flex-1 flex items-center space-x-1"
+        >
           <Car className="w-4 h-4" />
           <span>RIDE WITH BOLT</span>
         </Button>
