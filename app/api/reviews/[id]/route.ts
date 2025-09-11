@@ -3,17 +3,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
 
+// Type the context parameter
+interface RouteContext {
+  params: { id: string };
+}
+
 // DELETE /api/reviews/[id]
-export async function DELETE(
-  req: NextRequest,
-  context: any // use 'any' because Next.js doesn't type this officially
-) {
+export async function DELETE(req: NextRequest, context: RouteContext) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthenticated" }, { status: 401 });
   }
 
-  const { id } = context.params as { id: string };
+  const { id } = context.params;
   if (!id) {
     return NextResponse.json({ message: "Missing review ID" }, { status: 400 });
   }
