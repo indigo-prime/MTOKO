@@ -4,10 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Car, MapPin } from "lucide-react";
 import type * as LeafletNS from "leaflet";
-import Image from "next/image";
 
-// Treat leaflet-routing-machine as `any` (safe for TS)
-let Routing: any;
+// Strongly typed reference to leaflet-routing-machine
+let Routing: typeof import("leaflet-routing-machine") | null = null;
 
 interface RestaurantMapCardProps {
   location: string;
@@ -18,11 +17,11 @@ interface RestaurantMapCardProps {
 export default function RestaurantMapCard({ location, lat, lng }: RestaurantMapCardProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletNS.Map | null>(null);
-  const routeControlRef = useRef<any>(null);
+  const routeControlRef = useRef<LeafletNS.Control | null>(null);
 
   const [leaflet, setLeaflet] = useState<typeof LeafletNS | null>(null);
 
-  // Load Leaflet + leaflet-routing-machine dynamically
+  // Load Leaflet + Routing dynamically
   useEffect(() => {
     let cancelled = false;
 
@@ -35,7 +34,7 @@ export default function RestaurantMapCard({ location, lat, lng }: RestaurantMapC
       if (cancelled) return;
 
       setLeaflet(L);
-      Routing = LRM; // assign globally in this module
+      Routing = LRM;
     })();
 
     return () => {
@@ -98,22 +97,25 @@ export default function RestaurantMapCard({ location, lat, lng }: RestaurantMapC
     }
 
     const createRoute = (originLat: number, originLng: number) => {
-      const plan = Routing.plan([L.latLng(originLat, originLng), L.latLng(lat, lng)], {
-        createMarker: (_i: number, wp: any) => L.marker(wp.latLng),
-        draggableWaypoints: false,
-        addWaypoints: false,
-        routeWhileDragging: false,
-        show: false,
-      });
+      const plan = Routing!.plan(
+        [L.latLng(originLat, originLng), L.latLng(lat, lng)],
+        {
+          createMarker: (_i: number, wp: LeafletNS.Waypoint) => L.marker(wp.latLng),
+          draggableWaypoints: false,
+          addWaypoints: false,
+          routeWhileDragging: false,
+          show: false,
+        }
+      );
 
-      const control = Routing.control({
+      const control = Routing!.control({
         plan,
         lineOptions: {
           addWaypoints: false,
           extendToWaypoints: true,
           missingRouteTolerance: 0,
         },
-        router: Routing.osrmv1({
+        router: Routing!.osrmv1({
           serviceUrl: "https://router.project-osrm.org/route/v1",
           profile: "driving",
         }),
@@ -128,7 +130,7 @@ export default function RestaurantMapCard({ location, lat, lng }: RestaurantMapC
 
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => createRoute(pos.coords.latitude, pos.coords.longitude),
+        (pos: GeolocationPosition) => createRoute(pos.coords.latitude, pos.coords.longitude),
         () => alert("Could not get location. Showing destination only."),
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
@@ -141,10 +143,13 @@ export default function RestaurantMapCard({ location, lat, lng }: RestaurantMapC
   const handleRideWithBolt = () => {
     if (typeof lat !== "number" || typeof lng !== "number") return;
 
-    const getUserLocation = (callback: (pos: { lat: number; lng: number } | null) => void) => {
+    const getUserLocation = (
+      callback: (pos: { lat: number; lng: number } | null) => void
+    ) => {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-          (pos) => callback({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          (pos: GeolocationPosition) =>
+            callback({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
           () => callback(null),
           { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
