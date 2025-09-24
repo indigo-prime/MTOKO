@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 
+// Define type for Place safely
 interface Place {
   id: string;
   name: string;
@@ -27,16 +28,17 @@ interface Place {
   placeSubCategories?: { subCategory: { name?: string | null } }[];
 }
 
+// This page is a server component
 export default async function PlaceDetail({
   params,
 }: {
-  params: { id: string };
+  params: { id: string }; // ✅ plain object, NOT Promise
 }) {
-  // Server-side auth
+  const { id } = params;
+
+  // Server-side auth check
   const session = await auth();
   if (!session) redirect("/sign-in");
-
-  const { id } = params;
 
   // Fetch place data from Supabase
   const { data, error } = await supabase
@@ -74,7 +76,7 @@ export default async function PlaceDetail({
 
   const categories = [...mainCats, ...subCats];
 
-  // Map fallback coordinates
+  // Safe default coordinates
   const latitude = typeof place.latitude === "number" ? place.latitude : -6.8;
   const longitude = typeof place.longitude === "number" ? place.longitude : 39.28;
 
