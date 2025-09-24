@@ -1,4 +1,5 @@
 // app/(root)/places/[id]/page.tsx
+
 import PlaceCard2 from "@/components/PlaceCard2";
 import PlaceMapCard from "@/components/PlaceMapCard";
 import FeaturesRules from "@/components/FeaturesRules";
@@ -14,16 +15,16 @@ interface Place {
   location: string;
   latitude?: number | null;
   longitude?: number | null;
-  moods: string[];
-  imageUrls: string[];
-  likes: number;
+  moods?: string[];
+  imageUrls?: string[];
+  likes?: number;
   priceMin?: number | null;
   priceMax?: number | null;
   owner?: { name?: string | null; image?: string | null } | null;
-  features: { id: string; name: string }[];
-  rules: { id: string; text: string }[];
-  placeMainCategories: { mainCategory: { name?: string | null } }[] | null;
-  placeSubCategories: { subCategory: { name?: string | null } }[] | null;
+  features?: { id: string; name: string }[];
+  rules?: { id: string; text: string }[];
+  placeMainCategories?: { mainCategory: { name?: string | null } }[];
+  placeSubCategories?: { subCategory: { name?: string | null } }[];
 }
 
 export default async function PlaceDetail({
@@ -31,13 +32,13 @@ export default async function PlaceDetail({
 }: {
   params: { id: string };
 }) {
-  // server-side auth check
+  // Server-side auth
   const session = await auth();
   if (!session) redirect("/sign-in");
 
   const { id } = params;
 
-  // fetch place data from Supabase
+  // Fetch place data from Supabase
   const { data, error } = await supabase
     .from("Place")
     .select(`
@@ -52,31 +53,31 @@ export default async function PlaceDetail({
     .single();
 
   if (error || !data) {
-    console.error("Supabase error or no data:", error);
+    console.error("Supabase fetch error:", error);
     return notFound();
   }
 
   const place = data as Place;
 
-  // combine main & sub categories safely (guard for null/undefined)
-  const mainCats =
-    Array.isArray(place.placeMainCategories) && place.placeMainCategories.length
-      ? place.placeMainCategories
-          .map((c) => c?.mainCategory?.name)
-          .filter(Boolean) as string[]
-      : [];
+  // Combine main & sub categories safely
+  const mainCats = Array.isArray(place.placeMainCategories)
+    ? place.placeMainCategories
+        .map((c) => c?.mainCategory?.name)
+        .filter(Boolean) as string[]
+    : [];
 
-  const subCats =
-    Array.isArray(place.placeSubCategories) && place.placeSubCategories.length
-      ? place.placeSubCategories
-          .map((c) => c?.subCategory?.name)
-          .filter(Boolean) as string[]
-      : [];
+  const subCats = Array.isArray(place.placeSubCategories)
+    ? place.placeSubCategories
+        .map((c) => c?.subCategory?.name)
+        .filter(Boolean) as string[]
+    : [];
 
   const categories = [...mainCats, ...subCats];
 
-  // Server component can include client components (PlaceMapCard is client)
-  // NOTE: Do NOT pass `mapSrc` here unless PlaceMapCard accepts it in its props.
+  // Map fallback coordinates
+  const latitude = typeof place.latitude === "number" ? place.latitude : -6.8;
+  const longitude = typeof place.longitude === "number" ? place.longitude : 39.28;
+
   return (
     <div className="grid justify-items-center mt-6 w-full max-w-[935px] mx-auto gap-6">
       <PlaceCard2
@@ -96,11 +97,14 @@ export default async function PlaceDetail({
 
       <PlaceMapCard
         location={place.location}
-        lat={typeof place.latitude === "number" ? place.latitude : -6.8}
-        lng={typeof place.longitude === "number" ? place.longitude : 39.28}
+        lat={latitude}
+        lng={longitude}
       />
 
-      <FeaturesRules features={place.features ?? []} rules={place.rules ?? []} />
+      <FeaturesRules
+        features={place.features ?? []}
+        rules={place.rules ?? []}
+      />
 
       <CommentSection placeId={place.id} />
     </div>
