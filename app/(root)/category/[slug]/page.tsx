@@ -21,42 +21,6 @@ const SLUG_TO_ENUM = {
 type MainCategoryEnumType = typeof SLUG_TO_ENUM[keyof typeof SLUG_TO_ENUM];
 
 type RawPlace = {
-<<<<<<< HEAD
-    id: string;
-    name: string;
-    description: string;
-    location: string;
-    latitude: number | null;
-    longitude: number | null;
-    moods: string[] | null;
-    imageUrls: string[] | null;
-    priceMin: number | null;
-    priceMax: number | null;
-    PlaceSubCategory: { SubCategory: { name: string } }[];
-    PlaceMainCategory: { mainCategoryId: string }[];
-};
-
-type UiPlace = {
-    id: string;
-    name: string;
-    description: string;
-    location: string;
-    latitude?: number;
-    longitude?: number;
-    moods: string[];
-    imageSrc: string;
-    avatarSrc: string;
-    priceMin: number;
-    priceMax: number;
-    categories: string[];
-    likes: number;
-};
-
-export default function CategoryPage() {
-    const params = useParams<{ slug: string }>();
-    const slug = params?.slug;
-    const mainEnum = slug ? SLUG_TO_ENUM[slug] : undefined;
-=======
   id: string;
   name: string | null;
   description: string | null;
@@ -102,7 +66,6 @@ export default function CategoryPage() {
   const [places, setPlaces] = useState<UiPlace[]>([]);
   const [loading, setLoading] = useState(true);
   const [errMsg, setErrMsg] = useState<string | null>(null);
->>>>>>> 0e790886216d75430ba39eed33c0a5a8e5a5bda4
 
   useEffect(() => {
     if (!mainEnum) {
@@ -126,82 +89,6 @@ export default function CategoryPage() {
         if (mcErr) throw new Error(`Failed to fetch main category: ${mcErr.message}`);
         if (!mainCat) throw new Error("Main category not found");
 
-<<<<<<< HEAD
-                // 1) Get MainCategory row to obtain its id
-                const { data: mainCat, error: mcErr } = await supabase
-                    .from("MainCategory")
-                    .select("id,name")
-                    .eq("name", mainEnum)
-                    .maybeSingle();
-
-                if (mcErr) {
-                    setErrMsg(`Failed to fetch main category: ${mcErr.message}`);
-                    return;
-                }
-                if (!mainCat) {
-                    setErrMsg("Main category not found");
-                    return;
-                }
-
-                // 2) Fetch places linked to this MainCategory
-                let { data, error } = await supabase
-                    .from("Place")
-                    .select(`
-                        id,name,description,location,latitude,longitude,moods,priceMin,priceMax,imageUrls,
-                        PlaceSubCategory(SubCategory(name)),
-                        PlaceMainCategory!inner(mainCategoryId)
-                    `)
-                    .eq("PlaceMainCategory.mainCategoryId", mainCat.id);
-
-                // Fallback: if inner join fails, fetch + filter client-side
-                if (error) {
-                    console.warn("Join-filter fetch failed, falling back:", error.message);
-
-                    const fallback = await supabase
-                        .from("Place")
-                        .select(`
-                            id,name,description,location,latitude,longitude,moods,priceMin,priceMax,imageUrls,
-                            PlaceSubCategory(SubCategory(name)),
-                            PlaceMainCategory(mainCategoryId)
-                        `);
-
-                    if (fallback.error) {
-                        setErrMsg(`Failed to load places: ${fallback.error.message}`);
-                        return;
-                    }
-
-                    // ⚡ Normalize arrays to satisfy TypeScript
-                    const rawPlaces: RawPlace[] = (fallback.data as any[]).map((p: any) => ({
-                        ...p,
-                        PlaceSubCategory: (p.PlaceSubCategory ?? []).map((sc: any) => ({
-                            SubCategory: sc?.SubCategory ? { name: sc.SubCategory.name } : { name: "" },
-                        })),
-                        PlaceMainCategory: p.PlaceMainCategory ?? [],
-                    }));
-
-                    // Filter by main category safely
-                    data = rawPlaces.filter((p: RawPlace) =>
-                        (p.PlaceMainCategory ?? []).some(pm => pm?.mainCategoryId === mainCat.id)
-                    );
-                }
-
-                // 3) Map RawPlace -> UiPlace
-                const mapped: UiPlace[] = (data as RawPlace[]).map(p => ({
-                    id: p.id,
-                    name: p.name ?? "Unknown Place",
-                    description: p.description ?? "",
-                    location: p.location ?? "",
-                    latitude: p.latitude ?? undefined,
-                    longitude: p.longitude ?? undefined,
-                    moods: Array.isArray(p.moods) ? p.moods : [],
-                    imageSrc: p.imageUrls?.[0] ?? "/default-image.jpg",
-                    avatarSrc: p.imageUrls?.[1] ?? "/default-avatar.jpg",
-                    priceMin: p.priceMin ?? 0,
-                    priceMax: p.priceMax ?? 0,
-                    categories: (p.PlaceSubCategory ?? []).map(s => s.SubCategory.name).filter(Boolean),
-                    likes: 0,
-                }));
-=======
         // Fetch places linked to main category
         const { data, error: placeError } = await supabase
           .from("Place")
@@ -252,7 +139,6 @@ export default function CategoryPage() {
             .filter((c): c is string => !!c),
           likes: 0,
         }));
->>>>>>> 0e790886216d75430ba39eed33c0a5a8e5a5bda4
 
         setPlaces(mapped);
       } catch (err) {
@@ -297,41 +183,6 @@ export default function CategoryPage() {
     });
   }, [places, filters]);
 
-<<<<<<< HEAD
-    if (!mainEnum) return <div className="p-6 text-center">Unknown category</div>;
-    if (loading) return <div className="p-6 text-center">Loading {slug} places…</div>;
-    if (errMsg) return <div className="p-6 text-center text-red-500">{errMsg}</div>;
-
-    return (
-        <div className="space-y-8">
-            <CombinedSearchFilter4 mainCategoryEnum={mainEnum} onFilterChange={setFilters} />
-
-            <div className="max-w-[935px] mx-auto flex flex-col gap-6">
-                {filteredPlaces.length === 0 && (
-                    <div className="p-6 text-center">No places match your filters.</div>
-                )}
-
-                {filteredPlaces.map((place) => (
-                    <PlaceCard2
-                        key={place.id}
-                        placeId={place.id}
-                        name={place.name}
-                        description={place.description}
-                        location={place.location}
-                        imageSrc={place.imageSrc}
-                        priceMin={place.priceMin}
-                        priceMax={place.priceMax}
-                        categories={place.categories}
-                        moods={place.moods}
-                        likes={place.likes}
-                        avatarSrc={place.avatarSrc}
-                        username={place.name}
-                    />
-                ))}
-            </div>
-        </div>
-    );
-=======
   if (!mainEnum) return <div className="p-6 text-center">Unknown category</div>;
   if (loading) return <div className="p-6 text-center">Loading {slug} places…</div>;
   if (errMsg) return <div className="p-6 text-center text-red-500">{errMsg}</div>;
@@ -363,5 +214,4 @@ export default function CategoryPage() {
       </div>
     </div>
   );
->>>>>>> 0e790886216d75430ba39eed33c0a5a8e5a5bda4
 }

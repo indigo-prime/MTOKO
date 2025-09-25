@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 // lib/mappings.ts
 import { Mood, MainCategoryEnum } from "@prisma/client";
 
@@ -17,23 +16,6 @@ export const categoryMapping: Record<string, MainCategoryEnum> = {
     movie_theater: "ARTS_AND_CULTURE",
     // fallback
     default: "SHOPPING_AND_LIFESTYLE",
-=======
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-import { Mood, MainCategoryEnum, PriceRange } from "@prisma/client";
-
-// Map Google types → MainCategoryEnum
-export const categoryMapping: Record<string, MainCategoryEnum> = {
-    restaurant: "FOOD",
-    cafe: "FOOD",
-    bar: "FOOD",
-    park: "OUTDOOR",
-    night_club: "ENTERTAINMENT",
-    gym: "SPORTS",
-    museum: "CULTURE",
-    movie_theater: "ENTERTAINMENT",
-    default: "GENERAL",
->>>>>>> 0e790886216d75430ba39eed33c0a5a8e5a5bda4
 };
 
 // Simple heuristic for mood

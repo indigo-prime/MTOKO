@@ -14,27 +14,12 @@ interface RestaurantMapCardProps {
   lng?: number;
 }
 
-<<<<<<< HEAD
-export default function RestaurantMapCard({
-                                              mapSrc,
-                                              location,
-                                              lat,
-                                              lng,
-                                          }: RestaurantMapCardProps) {
-    const mapContainerRef = useRef<HTMLDivElement | null>(null);
-    const mapRef = useRef<LeafletNS.Map | null>(null);
-    const routeControlRef = useRef<any>(null);
-
-    const [leaflet, setLeaflet] = useState<typeof LeafletNS | null>(null);
-    const [lrm, setLrm] = useState<any>(null);
-=======
 export default function RestaurantMapCard({ location, lat, lng }: RestaurantMapCardProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletNS.Map | null>(null);
   const routeControlRef = useRef<LeafletNS.Control | null>(null);
 
   const [leaflet, setLeaflet] = useState<typeof LeafletNS | null>(null);
->>>>>>> 0e790886216d75430ba39eed33c0a5a8e5a5bda4
 
   // Load Leaflet + Routing dynamically
   useEffect(() => {
@@ -46,15 +31,7 @@ export default function RestaurantMapCard({ location, lat, lng }: RestaurantMapC
         import("leaflet-routing-machine"),
       ]);
 
-<<<<<<< HEAD
-            if (cancelled) return;
-            setLeaflet(L as unknown as typeof LeafletNS);
-            // side-effect import registers L.Routing globally
-            setLrm((L as any).Routing as any);
-        })();
-=======
       if (cancelled) return;
->>>>>>> 0e790886216d75430ba39eed33c0a5a8e5a5bda4
 
       setLeaflet(L);
       Routing = LRM;
@@ -147,90 +124,8 @@ export default function RestaurantMapCard({ location, lat, lng }: RestaurantMapC
         collapsible: true,
       });
 
-<<<<<<< HEAD
-        return () => {
-            map.remove();
-            mapRef.current = null;
-        };
-    }, [leaflet, lat, lng, location]);
-
-    const handleGetDirections = () => {
-        const L = leaflet;
-        const Routing = lrm;
-        const map = mapRef.current;
-
-        if (!L || !Routing || !map) return;
-
-        if (typeof lat !== "number" || typeof lng !== "number") {
-            alert("Location coordinates not available.");
-            return;
-        }
-
-        // Remove previous route if any
-        if (routeControlRef.current) {
-            map.removeControl(routeControlRef.current as any);
-            routeControlRef.current = null;
-        }
-
-        const createRoute = (originLat: number, originLng: number) => {
-            // OSRM public demo server (good for PoC; for production you may host your own)
-            const plan = Routing.plan(
-                [L.latLng(originLat, originLng), L.latLng(lat, lng)],
-                {
-                    createMarker: (i: any, wp: any) => L.marker(wp.latLng),
-                    draggableWaypoints: false,
-                    addWaypoints: false,
-                    routeWhileDragging: false,
-                    show: false,
-                }
-            );
-
-            const control = Routing.control({
-                plan,
-                lineOptions: {
-                    addWaypoints: false,
-                    extendToWaypoints: true,
-                    missingRouteTolerance: 0,
-                    // keep default styling to preserve your appearance
-                },
-                router: Routing.osrmv1({
-                    serviceUrl: "https://router.project-osrm.org/route/v1",
-                    profile: "driving",
-                }),
-                fitSelectedRoutes: true,
-                showAlternatives: false,
-                collapsible: true,
-            });
-
-            control.addTo(map);
-            routeControlRef.current = control;
-        };
-
-        const openWithUserLocation = () => {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                        createRoute(pos.coords.latitude, pos.coords.longitude);
-                    },
-                    (err) => {
-                        console.warn("Geolocation error:", err);
-                        alert(
-                            "Couldn't get your current location. Showing the place only."
-                        );
-                        // Keep only the destination marker; no route possible without origin
-                    },
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-                );
-            } else {
-                alert("Geolocation not supported on this device/browser.");
-            }
-        };
-
-        openWithUserLocation();
-=======
       control.addTo(map);
       routeControlRef.current = control;
->>>>>>> 0e790886216d75430ba39eed33c0a5a8e5a5bda4
     };
 
     if (navigator.geolocation) {

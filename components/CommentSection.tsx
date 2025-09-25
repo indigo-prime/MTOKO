@@ -36,28 +36,10 @@ export default function CommentSection({ placeId }: { placeId: string }) {
     setComments(nest(flat));
   };
 
-<<<<<<< HEAD
-    const nest = (flat: CommentType[]): CommentType[] => {
-        const map = new Map<string, CommentType>(
-            flat.map((c) => [c.id, { ...c, replies: [] as CommentType[] }])
-        );
-        const roots: CommentType[] = [];
-        map.forEach((c) => {
-            if (c.parentId && map.has(c.parentId)) {
-                const parent = map.get(c.parentId)!;
-                parent.replies.push(c);
-            } else {
-                roots.push(c);
-            }
-        });
-        return roots;
-    };
-=======
   const nest = (flat: Omit<CommentType, "replies">[]): CommentType[] => {
     const map: Map<string, CommentType> = new Map(
       flat.map((c) => [c.id, { ...c, replies: [] }])
     );
->>>>>>> 0e790886216d75430ba39eed33c0a5a8e5a5bda4
 
     const roots: CommentType[] = [];
     map.forEach((c) => {
