@@ -17,7 +17,11 @@ interface CommentType {
   replies: CommentType[];
 }
 
-export default function CommentSection({ placeId }: { placeId: string }) {
+interface CommentSectionProps {
+  placeId: string;
+}
+
+export default function CommentSection({ placeId }: CommentSectionProps) {
   const { data: session } = useSession();
   const user = session?.user;
 
@@ -26,40 +30,23 @@ export default function CommentSection({ placeId }: { placeId: string }) {
   const [newRating, setNewRating] = useState(0);
 
   useEffect(() => {
-    load();
+    loadComments();
   }, [placeId]);
 
-  const load = async () => {
+  // Fetch comments and nest replies
+  const loadComments = async () => {
     const res = await fetch(`/api/reviews?placeId=${placeId}`);
     if (!res.ok) return;
     const flat: Omit<CommentType, "replies">[] = await res.json();
     setComments(nest(flat));
   };
 
-<<<<<<< HEAD
-    const nest = (flat: CommentType[]): CommentType[] => {
-        const map = new Map<string, CommentType>(
-            flat.map((c) => [c.id, { ...c, replies: [] as CommentType[] }])
-        );
-        const roots: CommentType[] = [];
-        map.forEach((c) => {
-            if (c.parentId && map.has(c.parentId)) {
-                const parent = map.get(c.parentId)!;
-                parent.replies.push(c);
-            } else {
-                roots.push(c);
-            }
-        });
-        return roots;
-    };
-=======
   const nest = (flat: Omit<CommentType, "replies">[]): CommentType[] => {
-    const map: Map<string, CommentType> = new Map(
+    const map = new Map<string, CommentType>(
       flat.map((c) => [c.id, { ...c, replies: [] }])
     );
->>>>>>> 0e790886216d75430ba39eed33c0a5a8e5a5bda4
-
     const roots: CommentType[] = [];
+
     map.forEach((c) => {
       if (c.parentId && map.has(c.parentId)) {
         const parent = map.get(c.parentId)!;
@@ -68,6 +55,7 @@ export default function CommentSection({ placeId }: { placeId: string }) {
         roots.push(c);
       }
     });
+
     return roots;
   };
 
@@ -90,14 +78,14 @@ export default function CommentSection({ placeId }: { placeId: string }) {
     if (res.ok) {
       setNewComment("");
       setNewRating(0);
-      load();
+      loadComments();
     }
   };
 
   const remove = async (id: string) => {
     if (!(await requireLogin())) return;
     await fetch(`/api/reviews/${id}`, { method: "DELETE" });
-    load();
+    loadComments();
   };
 
   const update = async (id: string, content: string) => {
@@ -107,12 +95,11 @@ export default function CommentSection({ placeId }: { placeId: string }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content }),
     });
-    load();
+    loadComments();
   };
 
   const Comment = ({ comment }: { comment: CommentType }) => {
     const isOwn = user?.name === comment.user.name;
-
     const [editOpen, setEditOpen] = useState(false);
     const [content, setContent] = useState(comment.content);
 
@@ -127,12 +114,11 @@ export default function CommentSection({ placeId }: { placeId: string }) {
             className="rounded-full"
           />
           <div>
-            <div className="font-semibold text-gray-800">
-              {comment.user.name}
-            </div>
+            <div className="font-semibold text-gray-800">{comment.user.name}</div>
             <div className="text-sm text-gray-500">{comment.createdAt}</div>
           </div>
         </div>
+
         {editOpen ? (
           <textarea
             value={content}
@@ -142,18 +128,37 @@ export default function CommentSection({ placeId }: { placeId: string }) {
         ) : (
           <p className="mt-2 text-gray-700">{comment.content}</p>
         )}
+
         <div className="flex items-center justify-between mt-2">
-          <span className="text-sm text-gray-500">
-            Rating: {comment.rating} ⭐
-          </span>
+          <span className="text-sm text-gray-500">Rating: {comment.rating} ⭐</span>
           <div className="space-x-2">
             {isOwn && (
-              <button
-                onClick={() => remove(comment.id)}
-                className="text-red-500 hover:text-red-700"
-              >
-                <FontAwesomeIcon icon={faTrash} />
-              </button>
+              <>
+                <button
+                  onClick={() => remove(comment.id)}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  <FontAwesomeIcon icon={faTrash} />
+                </button>
+                {editOpen ? (
+                  <button
+                    onClick={() => {
+                      update(comment.id, content);
+                      setEditOpen(false);
+                    }}
+                    className="text-blue-500 hover:text-blue-700"
+                  >
+                    Save
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setEditOpen(true)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    Edit
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -178,6 +183,7 @@ export default function CommentSection({ placeId }: { placeId: string }) {
           <Comment key={comment.id} comment={comment} />
         ))}
       </div>
+
       <div className="mt-6">
         <textarea
           value={newComment}
