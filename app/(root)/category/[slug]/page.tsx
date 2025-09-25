@@ -54,6 +54,7 @@ type UiPlace = {
 export default function CategoryPage() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug;
+
   const mainEnum: MainCategoryEnumType | undefined =
     slug && slug in SLUG_TO_ENUM ? SLUG_TO_ENUM[slug as keyof typeof SLUG_TO_ENUM] : undefined;
 
@@ -114,7 +115,7 @@ export default function CategoryPage() {
           priceMax: p.priceMax ?? null,
           PlaceSubCategory: Array.isArray(p.PlaceSubCategory)
             ? p.PlaceSubCategory.map((psc) => ({
-                subCategory: psc.subCategory?.[0] ? { name: psc.subCategory[0].name } : null,
+                subCategory: psc.subCategory ?? null,
               }))
             : null,
           PlaceMainCategory: Array.isArray(p.PlaceMainCategory)

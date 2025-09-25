@@ -26,8 +26,9 @@ interface PlaceCardProps {
   priceMin?: number;
   priceMax?: number;
   description?: string | null;
-  distance?: number; // optional
+  distance?: number; // optional distance
   onUnsave?: () => void;
+  children?: React.ReactNode;
 }
 
 export default function PlaceCard2({
@@ -45,6 +46,7 @@ export default function PlaceCard2({
   description = "",
   distance,
   onUnsave,
+  children,
 }: PlaceCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
@@ -83,7 +85,6 @@ export default function PlaceCard2({
         setIsBookmarked(Boolean(data.saved));
         setLikeCount(typeof data.likeCount === "number" ? data.likeCount : likes);
       } catch (e: unknown) {
-        // keep this friendly for debugging
         console.error("Failed to load place status:", e);
         showMessage("Failed to load user actions");
       }
@@ -156,7 +157,6 @@ export default function PlaceCard2({
           <Link href={`/places/${placeId}`}>
             <span className="font-semibold text-sm text-mtoko-dark">{username}</span>
           </Link>
->>>>>>> 0e790886216d75430ba39eed33c0a5a8e5a5bda4
         </div>
 
         <FontAwesomeIcon
@@ -169,7 +169,6 @@ export default function PlaceCard2({
       </div>
 
       <div className="w-full relative">
-        {/* resolvedImageSrc is guaranteed to be a string */}
         <Image
           src={resolvedImageSrc}
           alt={name ?? "Place"}
@@ -253,6 +252,8 @@ export default function PlaceCard2({
         </div>
 
         {message && <div className="mt-2 text-sm text-red-500">{message}</div>}
+
+        {children && <div className="mt-3">{children}</div>}
       </div>
     </div>
   );

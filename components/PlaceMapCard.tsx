@@ -17,11 +17,11 @@ interface RestaurantMapCardProps {
 export default function RestaurantMapCard({ location, lat, lng }: RestaurantMapCardProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletNS.Map | null>(null);
-  const routeControlRef = useRef<LeafletNS.Control | null>(null);
+  const routeControlRef = useRef<any>(null);
 
   const [leaflet, setLeaflet] = useState<typeof LeafletNS | null>(null);
 
-  // Load Leaflet + Routing dynamically
+  // Load Leaflet and Routing dynamically
   useEffect(() => {
     let cancelled = false;
 
@@ -48,6 +48,7 @@ export default function RestaurantMapCard({ location, lat, lng }: RestaurantMapC
 
     const L = leaflet;
 
+    // Default marker icons
     const DefaultIcon = L.Icon.Default;
     DefaultIcon.mergeOptions({
       iconRetinaUrl: new URL("leaflet/dist/images/marker-icon-2x.png", import.meta.url).toString(),
@@ -55,7 +56,7 @@ export default function RestaurantMapCard({ location, lat, lng }: RestaurantMapC
       shadowUrl: new URL("leaflet/dist/images/marker-shadow.png", import.meta.url).toString(),
     });
 
-    const fallbackCenter: [number, number] = [-6.7924, 39.2083];
+    const fallbackCenter: [number, number] = [-6.7924, 39.2083]; // Dar es Salaam fallback
     const destExists = typeof lat === "number" && typeof lng === "number";
 
     const map = L.map(mapContainerRef.current, {
@@ -83,42 +84,35 @@ export default function RestaurantMapCard({ location, lat, lng }: RestaurantMapC
     };
   }, [leaflet, lat, lng, location]);
 
-  // Handle directions using leaflet-routing-machine
+  // Get directions using leaflet-routing-machine
   const handleGetDirections = () => {
-    if (!leaflet || !Routing || !mapRef.current || typeof lat !== "number" || typeof lng !== "number")
+    if (!leaflet || !Routing || !mapRef.current || typeof lat !== "number" || typeof lng !== "number") {
+      alert("Map not initialized or coordinates unavailable.");
       return;
+    }
 
     const L = leaflet;
     const map = mapRef.current;
 
+    // Remove previous route if exists
     if (routeControlRef.current) {
       map.removeControl(routeControlRef.current);
       routeControlRef.current = null;
     }
 
     const createRoute = (originLat: number, originLng: number) => {
-      const plan = Routing!.plan(
-        [L.latLng(originLat, originLng), L.latLng(lat, lng)],
-        {
-          createMarker: (_i: number, wp: LeafletNS.Waypoint) => L.marker(wp.latLng),
-          draggableWaypoints: false,
-          addWaypoints: false,
-          routeWhileDragging: false,
-          show: false,
-        }
-      );
+      const plan = Routing!.plan([L.latLng(originLat, originLng), L.latLng(lat, lng)], {
+        createMarker: (_i, wp) => L.marker(wp.latLng),
+        draggableWaypoints: false,
+        addWaypoints: false,
+        routeWhileDragging: false,
+        show: false,
+      });
 
       const control = Routing!.control({
         plan,
-        lineOptions: {
-          addWaypoints: false,
-          extendToWaypoints: true,
-          missingRouteTolerance: 0,
-        },
-        router: Routing!.osrmv1({
-          serviceUrl: "https://router.project-osrm.org/route/v1",
-          profile: "driving",
-        }),
+        lineOptions: { addWaypoints: false, extendToWaypoints: true, missingRouteTolerance: 0 },
+        router: Routing!.osrmv1({ serviceUrl: "https://router.project-osrm.org/route/v1", profile: "driving" }),
         fitSelectedRoutes: true,
         showAlternatives: false,
         collapsible: true,
@@ -130,7 +124,7 @@ export default function RestaurantMapCard({ location, lat, lng }: RestaurantMapC
 
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos: GeolocationPosition) => createRoute(pos.coords.latitude, pos.coords.longitude),
+        (pos) => createRoute(pos.coords.latitude, pos.coords.longitude),
         () => alert("Could not get location. Showing destination only."),
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
@@ -139,17 +133,14 @@ export default function RestaurantMapCard({ location, lat, lng }: RestaurantMapC
     }
   };
 
-  // Handle Bolt ride deep link
+  // Open Bolt ride
   const handleRideWithBolt = () => {
     if (typeof lat !== "number" || typeof lng !== "number") return;
 
-    const getUserLocation = (
-      callback: (pos: { lat: number; lng: number } | null) => void
-    ) => {
+    const getUserLocation = (callback: (pos: { lat: number; lng: number } | null) => void) => {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-          (pos: GeolocationPosition) =>
-            callback({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          (pos) => callback({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
           () => callback(null),
           { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
