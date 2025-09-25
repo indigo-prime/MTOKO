@@ -1,17 +1,23 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import prisma from '@/lib/db';
+import { NextResponse, type NextRequest } from 'next/server'
+import { auth } from '@/lib/auth'
+import prisma from '@/lib/db'
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
-    const session = await auth();
-    if (!session?.user?.id) return NextResponse.json({ message: 'Unauthenticated' }, { status: 401 });
+export async function DELETE(
+    req: NextRequest,
+    ctx: { params: Promise<{ id: string }> }
+) {
+    const { id } = await ctx.params
 
-    const id = params.id;
-    const review = await prisma.review.findUnique({ where: { id } });
-    if (!review || review.userId !== session.user.id) {
-        return NextResponse.json({ message: 'Not allowed' }, { status: 403 });
+    const session = await auth()
+    if (!session?.user?.id) {
+        return NextResponse.json({ message: 'Unauthenticated' }, { status: 401 })
     }
 
-    await prisma.review.delete({ where: { id } });
-    return NextResponse.json({ success: true });
+    const review = await prisma.review.findUnique({ where: { id } })
+    if (!review || review.userId !== session.user.id) {
+        return NextResponse.json({ message: 'Not allowed' }, { status: 403 })
+    }
+
+    await prisma.review.delete({ where: { id } })
+    return NextResponse.json({ success: true })
 }

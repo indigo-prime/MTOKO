@@ -1,28 +1,31 @@
 // lib/mappings.ts
-import { Mood, MainCategoryEnum, PriceRange } from "@prisma/client";
+import { Mood, MainCategoryEnum } from "@prisma/client";
+
+// Local type for price range shape used by mapping
+export type PriceRange = { min: number; max: number };
 
 // Map Google types → MainCategoryEnum
 export const categoryMapping: Record<string, MainCategoryEnum> = {
-    restaurant: "FOOD",
-    cafe: "FOOD",
-    bar: "FOOD",
-    park: "OUTDOOR",
-    night_club: "ENTERTAINMENT",
-    gym: "SPORTS",
-    museum: "CULTURE",
-    movie_theater: "ENTERTAINMENT",
+    restaurant: "FOOD_PACK",
+    cafe: "FOOD_PACK",
+    bar: "FOOD_PACK",
+    park: "NATURE_AND_OUTDOOR",
+    night_club: "NIGHT_LIFE",
+    gym: "EVENTS_AND_EXPERIENCE",
+    museum: "ARTS_AND_CULTURE",
+    movie_theater: "ARTS_AND_CULTURE",
     // fallback
-    default: "GENERAL",
+    default: "SHOPPING_AND_LIFESTYLE",
 };
 
 // Simple heuristic for mood (extend later if needed)
 export const moodMapping: Record<string, Mood> = {
     cafe: "ROMANTIC",
     park: "RELAXED",
-    night_club: "PARTY",
-    gym: "ACTIVE",
+    night_club: "ADVENTUROUS",
+    gym: "ADVENTUROUS",
     museum: "CULTURAL",
-    default: "NEUTRAL",
+    default: "RELAXED",
 };
 
 // Map Google price_level (0–4) → min/max price ranges

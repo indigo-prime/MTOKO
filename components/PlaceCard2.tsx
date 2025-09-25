@@ -26,6 +26,7 @@ interface PlaceCardProps {
     priceMax?: number;
     description?: string | null;
     onUnsave?: () => void; // 🔥 callback prop
+    children?: React.ReactNode; // allow optional custom content (e.g., distance)
 }
 
 export default function PlaceCard2({
@@ -42,6 +43,7 @@ export default function PlaceCard2({
                                        priceMax = 0,
                                        description = "",
                                        onUnsave,
+                                       children,
                                    }: PlaceCardProps) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isBookmarked, setIsBookmarked] = useState(false);
@@ -164,7 +166,7 @@ export default function PlaceCard2({
 
             <div className="w-full relative">
                 <Image
-                    src={imageSrc}
+                    src={imageSrc ?? "/default-image.jpg"}
                     alt={name || "Place"}
                     width={800}
                     height={500}
@@ -175,7 +177,7 @@ export default function PlaceCard2({
             <div className="px-4 pb-4">
                 <p className="text-muted-foreground mb-4 flex-1">
                     {isExpanded ? description : truncatedDescription}
-                    {description.length > 100 && (
+                    {(description ?? "").length > 100 && (
                         <Button
                             variant="link"
                             size="sm"
@@ -243,6 +245,12 @@ export default function PlaceCard2({
                         {currencyFormatter.format(priceMin)} - {currencyFormatter.format(priceMax)}
                     </Badge>
                 </div>
+
+                {children ? (
+                    <div className="mt-3">
+                        {children}
+                    </div>
+                ) : null}
             </div>
         </div>
     );

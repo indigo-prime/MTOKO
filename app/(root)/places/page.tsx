@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+
 import CombinedSearchFilter3, { FilterValues } from "@/components/CombinedSearchFilter3";
 import PlacesResults, { Place } from "@/components/PlacesResults";
 import { supabase } from "@/lib/supabase";

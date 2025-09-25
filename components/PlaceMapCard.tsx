@@ -7,7 +7,6 @@ import { Car, MapPin } from "lucide-react";
 
 // Leaflet is browser-only; import dynamically inside effects
 import type * as LeafletNS from "leaflet";
-import type * as LRMNS from "leaflet-routing-machine";
 
 
 interface RestaurantMapCardProps {
@@ -25,10 +24,10 @@ export default function RestaurantMapCard({
                                           }: RestaurantMapCardProps) {
     const mapContainerRef = useRef<HTMLDivElement | null>(null);
     const mapRef = useRef<LeafletNS.Map | null>(null);
-    const routeControlRef = useRef<LRMNS.Routing.Control | null>(null);
+    const routeControlRef = useRef<any>(null);
 
     const [leaflet, setLeaflet] = useState<typeof LeafletNS | null>(null);
-    const [lrm, setLrm] = useState<typeof LRMNS | null>(null);
+    const [lrm, setLrm] = useState<any>(null);
 
     // Load Leaflet + Routing Machine only on client
     useEffect(() => {
@@ -42,8 +41,8 @@ export default function RestaurantMapCard({
 
             if (cancelled) return;
             setLeaflet(L as unknown as typeof LeafletNS);
-            // side-effect import registers L.Routing globally; we only need a type handle to satisfy TS
-            setLrm((L as any).Routing as unknown as typeof LRMNS.Routing);
+            // side-effect import registers L.Routing globally
+            setLrm((L as any).Routing as any);
         })();
 
         return () => {
@@ -115,7 +114,7 @@ export default function RestaurantMapCard({
             const plan = Routing.plan(
                 [L.latLng(originLat, originLng), L.latLng(lat, lng)],
                 {
-                    createMarker: (i, wp) => L.marker(wp.latLng),
+                    createMarker: (i: any, wp: any) => L.marker(wp.latLng),
                     draggableWaypoints: false,
                     addWaypoints: false,
                     routeWhileDragging: false,

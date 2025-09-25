@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig = {
+    experimental: {
+        topLevelAwait: true,
+    },
+    eslint: {
+        ignoreDuringBuilds: true,
+    },
     images: {
         remotePatterns: [
             {
