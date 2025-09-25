@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 
-// Define type for Place safely
+// ✅ Define Place type
 interface Place {
   id: string;
   name: string;
@@ -28,19 +28,24 @@ interface Place {
   placeSubCategories?: { subCategory: { name?: string | null } }[];
 }
 
-// This page is a server component
-export default async function PlaceDetail({
-  params,
-}: {
-  params: { id: string };
-}) {
+// ✅ Explicit PageProps type
+interface PageProps {
+  params: {
+    id: string;
+  };
+}
+
+// ✅ Server component page
+export default async function PlaceDetail({ params }: PageProps) {
   const { id } = params;
 
-  // Server-side auth check
+  // ✅ Auth check (server-side)
   const session = await auth();
-  if (!session) redirect("/sign-in");
+  if (!session) {
+    redirect("/sign-in");
+  }
 
-  // Fetch place data from Supabase
+  // ✅ Fetch data from Supabase
   const { data, error } = await supabase
     .from("Place")
     .select(`
@@ -56,12 +61,12 @@ export default async function PlaceDetail({
 
   if (error || !data) {
     console.error("Supabase fetch error:", error);
-    return notFound();
+    notFound();
   }
 
   const place = data as Place;
 
-  // Combine main & sub categories safely
+  // ✅ Safely combine main + sub categories
   const mainCats = Array.isArray(place.placeMainCategories)
     ? place.placeMainCategories
         .map((c) => c?.mainCategory?.name)
@@ -76,7 +81,7 @@ export default async function PlaceDetail({
 
   const categories = [...mainCats, ...subCats];
 
-  // Safe default coordinates
+  // ✅ Safe default coordinates
   const latitude = typeof place.latitude === "number" ? place.latitude : -6.8;
   const longitude = typeof place.longitude === "number" ? place.longitude : 39.28;
 
@@ -97,16 +102,9 @@ export default async function PlaceDetail({
         description={place.description ?? ""}
       />
 
-      <PlaceMapCard
-        location={place.location}
-        lat={latitude}
-        lng={longitude}
-      />
+      <PlaceMapCard location={place.location} lat={latitude} lng={longitude} />
 
-      <FeaturesRules
-        features={place.features ?? []}
-        rules={place.rules ?? []}
-      />
+      <FeaturesRules features={place.features ?? []} rules={place.rules ?? []} />
 
       <CommentSection placeId={place.id} />
     </div>
