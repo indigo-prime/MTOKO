@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 import { NextResponse, type NextRequest } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/db'
@@ -21,7 +21,7 @@ export async function DELETE(
 
     await prisma.review.delete({ where: { id } })
     return NextResponse.json({ success: true })
-=======
+
 // app/api/reviews/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
