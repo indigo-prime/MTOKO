@@ -32,7 +32,7 @@ interface Place {
 export default async function PlaceDetail({
   params,
 }: {
-  params: { id: string }; // ✅ plain object, NOT Promise
+  params: { id: string };
 }) {
   const { id } = params;
 
@@ -74,29 +74,6 @@ export default async function PlaceDetail({
         .filter(Boolean) as string[]
     : [];
 
-<<<<<<< HEAD
-    return (
-        <div className="grid justify-items-center mt-6 w-full max-w-[935px] mx-auto">
-            <PlaceCard2
-                placeId={place.id}
-                username={place.owner?.name || "owner"}
-                avatarSrc={place.owner?.image || "/images/avatars/default.png"}
-                name={place.name}
-                imageSrc={place.imageUrls?.[0] || "/placeholder.jpg"}
-                likes={place.likes}
-                location={place.location}
-                categories={categories}
-                moods={place.moods}
-                priceMin={place.priceMin || 0}
-                priceMax={place.priceMax || 0}
-                description={place.description}
-            />
-            <PlaceMapCard mapSrc={mapSrc} location={place.location} lat={place.latitude} lng={place.longitude} />
-            <FeaturesRules features={place.features} rules={place.rules} />
-            <CommentSection placeId={place.id} />
-        </div>
-    );
-=======
   const categories = [...mainCats, ...subCats];
 
   // Safe default coordinates
@@ -134,5 +111,4 @@ export default async function PlaceDetail({
       <CommentSection placeId={place.id} />
     </div>
   );
->>>>>>> 0e790886216d75430ba39eed33c0a5a8e5a5bda4
 }
