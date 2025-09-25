@@ -7,18 +7,21 @@ import CombinedSearchFilter4, { FilterValues } from "@/components/CombinedSearch
 import PlaceCard2 from "@/components/PlaceCard2";
 import { supabase } from "@/lib/supabase";
 
-// Map pretty slugs -> Prisma enum (MainCategoryEnum)
-const SLUG_TO_ENUM: Record<string, string> = {
-    "food": "FOOD_PACK",
-    "family": "FAMILY_AND_KIDS",
-    "nightlife": "NIGHT_LIFE",
-    "arts-and-culture": "ARTS_AND_CULTURE",
-    "nature-and-outdoor": "NATURE_AND_OUTDOOR",
-    "shopping-and-lifestyle": "SHOPPING_AND_LIFESTYLE",
-    "events-and-experiences": "EVENTS_AND_EXPERIENCE",
-};
+// Map pretty slugs -> MainCategoryEnum
+const SLUG_TO_ENUM = {
+  food: "FOOD_PACK",
+  family: "FAMILY_AND_KIDS",
+  nightlife: "NIGHT_LIFE",
+  "arts-and-culture": "ARTS_AND_CULTURE",
+  "nature-and-outdoor": "NATURE_AND_OUTDOOR",
+  "shopping-and-lifestyle": "SHOPPING_AND_LIFESTYLE",
+  "events-and-experiences": "EVENTS_AND_EXPERIENCES",
+} as const;
+
+type MainCategoryEnumType = typeof SLUG_TO_ENUM[keyof typeof SLUG_TO_ENUM];
 
 type RawPlace = {
+<<<<<<< HEAD
     id: string;
     name: string;
     description: string;
@@ -53,30 +56,77 @@ export default function CategoryPage() {
     const params = useParams<{ slug: string }>();
     const slug = params?.slug;
     const mainEnum = slug ? SLUG_TO_ENUM[slug] : undefined;
+=======
+  id: string;
+  name: string | null;
+  description: string | null;
+  location: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  moods: string[] | null;
+  imageUrls: string[] | null;
+  priceMin: number | null;
+  priceMax: number | null;
+  PlaceSubCategory?: { subCategory: { name: string } | null }[] | null;
+  PlaceMainCategory?: { mainCategoryId: string }[] | null;
+};
 
-    const [filters, setFilters] = useState<FilterValues>({
-        searchTerm: "",
-        selectedMood: "All",
-        selectedCategories: [],
-        priceRange: [2000, 10000],
-    });
+type UiPlace = {
+  id: string;
+  name: string;
+  description: string;
+  location: string;
+  latitude?: number;
+  longitude?: number;
+  moods: string[];
+  imageSrc: string;
+  avatarSrc: string;
+  priceMin: number;
+  priceMax: number;
+  categories: string[];
+  likes: number;
+};
 
-    const [places, setPlaces] = useState<UiPlace[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [errMsg, setErrMsg] = useState<string | null>(null);
+export default function CategoryPage() {
+  const params = useParams<{ slug: string }>();
+  const slug = params?.slug;
+  const mainEnum: MainCategoryEnumType | undefined =
+    slug && slug in SLUG_TO_ENUM ? SLUG_TO_ENUM[slug as keyof typeof SLUG_TO_ENUM] : undefined;
 
-    useEffect(() => {
-        if (!mainEnum) {
-            setErrMsg("Unknown category");
-            setLoading(false);
-            return;
-        }
+  const [filters, setFilters] = useState<FilterValues>({
+    searchTerm: "",
+    selectedMood: "All",
+    selectedCategories: [],
+    priceRange: [2000, 10000],
+  });
+  const [places, setPlaces] = useState<UiPlace[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errMsg, setErrMsg] = useState<string | null>(null);
+>>>>>>> 0e790886216d75430ba39eed33c0a5a8e5a5bda4
 
-        (async () => {
-            try {
-                setLoading(true);
-                setErrMsg(null);
+  useEffect(() => {
+    if (!mainEnum) {
+      setErrMsg("Unknown category");
+      setLoading(false);
+      return;
+    }
 
+    const fetchPlaces = async () => {
+      try {
+        setLoading(true);
+        setErrMsg(null);
+
+        // Fetch main category
+        const { data: mainCat, error: mcErr } = await supabase
+          .from("MainCategory")
+          .select("id, name")
+          .eq("name", mainEnum)
+          .maybeSingle();
+
+        if (mcErr) throw new Error(`Failed to fetch main category: ${mcErr.message}`);
+        if (!mainCat) throw new Error("Main category not found");
+
+<<<<<<< HEAD
                 // 1) Get MainCategory row to obtain its id
                 const { data: mainCat, error: mcErr } = await supabase
                     .from("MainCategory")
@@ -151,49 +201,103 @@ export default function CategoryPage() {
                     categories: (p.PlaceSubCategory ?? []).map(s => s.SubCategory.name).filter(Boolean),
                     likes: 0,
                 }));
+=======
+        // Fetch places linked to main category
+        const { data, error: placeError } = await supabase
+          .from("Place")
+          .select(`
+            id, name, description, location, latitude, longitude, moods, priceMin, priceMax, imageUrls,
+            PlaceSubCategory(subCategory(name)),
+            PlaceMainCategory!inner(mainCategoryId)
+          `)
+          .eq("PlaceMainCategory.mainCategoryId", mainCat.id);
 
-                setPlaces(mapped);
-            } catch (e: any) {
-                console.error(e);
-                setErrMsg("Unexpected error loading places");
-            } finally {
-                setLoading(false);
-            }
-        })();
-    }, [mainEnum, slug]);
+        if (placeError) throw new Error(`Failed to fetch places: ${placeError.message}`);
 
-    const rangesOverlap = (placeMin: number, placeMax: number, selMin: number, selMax: number) =>
-        placeMax >= selMin && placeMin <= selMax;
+        const rawPlaces: RawPlace[] = (data ?? []).map((p) => ({
+          id: String(p.id),
+          name: p.name ?? null,
+          description: p.description ?? null,
+          location: p.location ?? null,
+          latitude: p.latitude ?? null,
+          longitude: p.longitude ?? null,
+          moods: Array.isArray(p.moods) ? p.moods : null,
+          imageUrls: Array.isArray(p.imageUrls) ? p.imageUrls : null,
+          priceMin: p.priceMin ?? null,
+          priceMax: p.priceMax ?? null,
+          PlaceSubCategory: Array.isArray(p.PlaceSubCategory)
+            ? p.PlaceSubCategory.map((psc) => ({
+                subCategory: psc.subCategory?.[0] ? { name: psc.subCategory[0].name } : null,
+              }))
+            : null,
+          PlaceMainCategory: Array.isArray(p.PlaceMainCategory)
+            ? p.PlaceMainCategory.map((pm) => ({ mainCategoryId: String(pm.mainCategoryId) }))
+            : null,
+        }));
 
-    const filteredPlaces = useMemo(() => {
-        const term = filters.searchTerm.toLowerCase().trim();
+        const mapped: UiPlace[] = rawPlaces.map((p) => ({
+          id: p.id,
+          name: p.name ?? "Unknown Place",
+          description: p.description ?? "",
+          location: p.location ?? "",
+          latitude: p.latitude ?? undefined,
+          longitude: p.longitude ?? undefined,
+          moods: p.moods ?? [],
+          imageSrc: p.imageUrls?.[0] ?? "/default-image.jpg",
+          avatarSrc: p.imageUrls?.[1] ?? "/default-avatar.jpg",
+          priceMin: p.priceMin ?? 0,
+          priceMax: p.priceMax ?? 0,
+          categories: (p.PlaceSubCategory ?? [])
+            .map((s) => s?.subCategory?.name)
+            .filter((c): c is string => !!c),
+          likes: 0,
+        }));
+>>>>>>> 0e790886216d75430ba39eed33c0a5a8e5a5bda4
 
-        return places.filter((place) => {
-            const matchesSearch =
-                term === "" ||
-                place.name.toLowerCase().includes(term) ||
-                place.description.toLowerCase().includes(term) ||
-                place.location.toLowerCase().includes(term);
+        setPlaces(mapped);
+      } catch (err) {
+        console.error(err);
+        setErrMsg(err instanceof Error ? err.message : "Unexpected error loading places");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-            const matchesMood =
-                filters.selectedMood === "All" ||
-                place.moods.map((m) => m.toLowerCase()).includes(filters.selectedMood.toLowerCase());
+    fetchPlaces();
+  }, [mainEnum]);
 
-            const matchesCategory =
-                filters.selectedCategories.length === 0 ||
-                place.categories.some((c) => filters.selectedCategories.includes(c));
+  const rangesOverlap = (placeMin: number, placeMax: number, selMin: number, selMax: number) =>
+    placeMax >= selMin && placeMin <= selMax;
 
-            const matchesPrice = rangesOverlap(
-                place.priceMin ?? 0,
-                place.priceMax ?? 0,
-                filters.priceRange[0],
-                filters.priceRange[1]
-            );
+  const filteredPlaces = useMemo(() => {
+    const term = filters.searchTerm.toLowerCase().trim();
+    return places.filter((place) => {
+      const matchesSearch =
+        term === "" ||
+        place.name.toLowerCase().includes(term) ||
+        place.description.toLowerCase().includes(term) ||
+        place.location.toLowerCase().includes(term);
 
-            return matchesSearch && matchesMood && matchesCategory && matchesPrice;
-        });
-    }, [places, filters]);
+      const matchesMood =
+        filters.selectedMood === "All" ||
+        place.moods.map((m) => m.toLowerCase()).includes(filters.selectedMood.toLowerCase());
 
+      const matchesCategory =
+        filters.selectedCategories.length === 0 ||
+        place.categories.some((c) => filters.selectedCategories.includes(c));
+
+      const matchesPrice = rangesOverlap(
+        place.priceMin,
+        place.priceMax,
+        filters.priceRange[0],
+        filters.priceRange[1]
+      );
+
+      return matchesSearch && matchesMood && matchesCategory && matchesPrice;
+    });
+  }, [places, filters]);
+
+<<<<<<< HEAD
     if (!mainEnum) return <div className="p-6 text-center">Unknown category</div>;
     if (loading) return <div className="p-6 text-center">Loading {slug} places…</div>;
     if (errMsg) return <div className="p-6 text-center text-red-500">{errMsg}</div>;
@@ -227,4 +331,37 @@ export default function CategoryPage() {
             </div>
         </div>
     );
+=======
+  if (!mainEnum) return <div className="p-6 text-center">Unknown category</div>;
+  if (loading) return <div className="p-6 text-center">Loading {slug} places…</div>;
+  if (errMsg) return <div className="p-6 text-center text-red-500">{errMsg}</div>;
+
+  return (
+    <div className="space-y-8">
+      <CombinedSearchFilter4 mainCategoryEnum={mainEnum} onFilterChange={setFilters} />
+      <div className="max-w-[935px] mx-auto flex flex-col gap-6">
+        {filteredPlaces.length === 0 && (
+          <div className="p-6 text-center">No places match your filters.</div>
+        )}
+        {filteredPlaces.map((place) => (
+          <PlaceCard2
+            key={place.id}
+            placeId={place.id}
+            name={place.name}
+            description={place.description}
+            location={place.location}
+            imageSrc={place.imageSrc}
+            priceMin={place.priceMin}
+            priceMax={place.priceMax}
+            categories={place.categories}
+            moods={place.moods}
+            likes={place.likes}
+            avatarSrc={place.avatarSrc}
+            username={place.name}
+          />
+        ))}
+      </div>
+    </div>
+  );
+>>>>>>> 0e790886216d75430ba39eed33c0a5a8e5a5bda4
 }

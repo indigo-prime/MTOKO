@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // lib/mappings.ts
 import { Mood, MainCategoryEnum } from "@prisma/client";
 
@@ -16,9 +17,26 @@ export const categoryMapping: Record<string, MainCategoryEnum> = {
     movie_theater: "ARTS_AND_CULTURE",
     // fallback
     default: "SHOPPING_AND_LIFESTYLE",
+=======
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import { Mood, MainCategoryEnum, PriceRange } from "@prisma/client";
+
+// Map Google types → MainCategoryEnum
+export const categoryMapping: Record<string, MainCategoryEnum> = {
+    restaurant: "FOOD",
+    cafe: "FOOD",
+    bar: "FOOD",
+    park: "OUTDOOR",
+    night_club: "ENTERTAINMENT",
+    gym: "SPORTS",
+    museum: "CULTURE",
+    movie_theater: "ENTERTAINMENT",
+    default: "GENERAL",
+>>>>>>> 0e790886216d75430ba39eed33c0a5a8e5a5bda4
 };
 
-// Simple heuristic for mood (extend later if needed)
+// Simple heuristic for mood
 export const moodMapping: Record<string, Mood> = {
     cafe: "ROMANTIC",
     park: "RELAXED",
@@ -28,7 +46,6 @@ export const moodMapping: Record<string, Mood> = {
     default: "RELAXED",
 };
 
-// Map Google price_level (0–4) → min/max price ranges
 export function mapPriceRange(priceLevel?: number): PriceRange {
     switch (priceLevel) {
         case 0: return { min: 0, max: 0 };
@@ -40,7 +57,6 @@ export function mapPriceRange(priceLevel?: number): PriceRange {
     }
 }
 
-// Normalize Google place into Mtoko schema-like object
 export function normalizeGooglePlace(place: any) {
     const types: string[] = place.types || [];
     const primaryType = types[0] || "default";
