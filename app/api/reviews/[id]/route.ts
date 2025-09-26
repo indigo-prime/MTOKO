@@ -1,5 +1,5 @@
 <<<<<<< HEAD
-// app/api/reviews/[id]/route.ts
+// app/api/reviews/[id]/route.ts (this is a test of the sync habit of git and my local code , if i pull the code to my local editor i expect to see thia)
 =======
 >>>>>>> 66fc7289905e4cf9c341e20a3443a65433cabd7b
 import { NextRequest, NextResponse } from "next/server";
