@@ -1,4 +1,11 @@
+<<<<<<< HEAD
 
+=======
+<<<<<<< HEAD
+// app/api/reviews/[id]/route.ts (this is a test of the sync habit of git and my local code , if i pull the code to my local editor i expect to see thia)
+=======
+>>>>>>> 66fc7289905e4cf9c341e20a3443a65433cabd7b
+>>>>>>> 3f3862f4de824b75e0e47f7c22c2e9c28d691d81
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
