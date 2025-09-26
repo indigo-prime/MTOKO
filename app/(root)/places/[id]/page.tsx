@@ -28,16 +28,16 @@ interface Place {
   placeSubCategories?: { subCategory: { name?: string | null } }[];
 }
 
-// ✅ Explicit PageProps type
+// ✅ Explicit PageProps type (Next.js 15: params is a Promise)
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 // ✅ Server component page
 export default async function PlaceDetail({ params }: PageProps) {
-  const { id } = params;
+  const { id } = await params;
 
   // ✅ Auth check (server-side)
   const session = await auth();

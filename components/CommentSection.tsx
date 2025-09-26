@@ -13,7 +13,7 @@ interface CommentType {
   content: string;
   rating: number;
   createdAt: string;
-  user: { name: string; image: string };
+  user: { name: string | null; image: string | null };
   replies: CommentType[];
 }
 
@@ -45,10 +45,6 @@ export default function CommentSection({ placeId }: CommentSectionProps) {
     const map = new Map<string, CommentType>(
       flat.map((c) => [c.id, { ...c, replies: [] }])
     );
-<<<<<<< HEAD
-
-=======
->>>>>>> 66fc7289905e4cf9c341e20a3443a65433cabd7b
     const roots: CommentType[] = [];
 
     map.forEach((c) => {
@@ -103,8 +99,8 @@ export default function CommentSection({ placeId }: CommentSectionProps) {
   };
 
   const Comment = ({ comment }: { comment: CommentType }) => {
-    const isOwn = user?.name === comment.user.name;
-    const [editOpen, setEditOpen] = useState(false);
+    const isOwn = (user?.name ?? "") === (comment.user.name ?? "");
+
     const [content, setContent] = useState(comment.content);
 
     return (
@@ -113,25 +109,17 @@ export default function CommentSection({ placeId }: CommentSectionProps) {
           <Image
             height={26}
             width={26}
-            src={comment.user.image}
-            alt={comment.user.name}
+            src={comment.user.image ?? "/images/avatars/default.png"}
+            alt={comment.user.name ?? "User"}
             className="rounded-full"
           />
           <div>
-            <div className="font-semibold text-gray-800">{comment.user.name}</div>
+            <div className="font-semibold text-gray-800">{comment.user.name ?? "User"}</div>
             <div className="text-sm text-gray-500">{comment.createdAt}</div>
           </div>
         </div>
 
-        {editOpen ? (
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="w-full mt-2 p-2 border border-gray-300 rounded-md"
-          />
-        ) : (
-          <p className="mt-2 text-gray-700">{comment.content}</p>
-        )}
+        <div className="mt-3 text-gray-800">{comment.content}</div>
 
         <div className="flex items-center justify-between mt-2">
           <span className="text-sm text-gray-500">Rating: {comment.rating} ⭐</span>
@@ -144,24 +132,6 @@ export default function CommentSection({ placeId }: CommentSectionProps) {
                 >
                   <FontAwesomeIcon icon={faTrash} />
                 </button>
-                {editOpen ? (
-                  <button
-                    onClick={() => {
-                      update(comment.id, content);
-                      setEditOpen(false);
-                    }}
-                    className="text-blue-500 hover:text-blue-700"
-                  >
-                    Save
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setEditOpen(true)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    Edit
-                  </button>
-                )}
               </>
             )}
           </div>

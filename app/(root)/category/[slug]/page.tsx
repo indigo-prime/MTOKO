@@ -95,7 +95,7 @@ export default function CategoryPage() {
           .from("Place")
           .select(`
             id, name, description, location, latitude, longitude, moods, priceMin, priceMax, imageUrls,
-            PlaceSubCategory(subCategory(name)),
+            PlaceSubCategory(subCategory:SubCategory(name)),
             PlaceMainCategory!inner(mainCategoryId)
           `)
           .eq("PlaceMainCategory.mainCategoryId", mainCat.id);

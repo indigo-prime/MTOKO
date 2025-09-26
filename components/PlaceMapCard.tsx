@@ -102,7 +102,7 @@ export default function RestaurantMapCard({ location, lat, lng }: RestaurantMapC
 
     const createRoute = (originLat: number, originLng: number) => {
       const plan = Routing!.plan([L.latLng(originLat, originLng), L.latLng(lat, lng)], {
-        createMarker: (_i, wp) => L.marker(wp.latLng),
+        createMarker: (_i: number, wp: any) => L.marker(wp.latLng),
         draggableWaypoints: false,
         addWaypoints: false,
         routeWhileDragging: false,

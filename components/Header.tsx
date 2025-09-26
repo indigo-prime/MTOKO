@@ -22,7 +22,7 @@ import {
     IoSettingsOutline,
 } from "react-icons/io5";
 import { SignOut } from "@/components/sign-out";
-import { useSession, SessionProvider } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 
 export default function Header() {
@@ -61,7 +61,6 @@ export default function Header() {
     }, [pathname]);
 
     return (
-        <SessionProvider>
             <header className="fixed top-0 left-0 w-full bg-gradient-to-br from-mtoko-light via-mtoko-secondary to-mtoko-primary py-[10px] z-[100] shadow-[0_4px_12px_rgba(0,0,0,0.15)] rounded-b-[16px]">
                 <div className="max-w-[975px] mx-auto flex justify-between items-center px-[20px]">
                     {/* Logo */}
@@ -218,6 +217,5 @@ export default function Header() {
                     </nav>
                 </div>
             </header>
-        </SessionProvider>
     );
 }
