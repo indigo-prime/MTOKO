@@ -9,7 +9,8 @@
     "lint": "next lint",
     "db:migrate": "npx prisma migrate dev",
     "db:studio": "npx prisma studio",
-    "db:reset": "prisma migrate reset && prisma migrate dev"
+    "db:reset": "prisma migrate reset && prisma migrate dev",
+    "postinstall": "prisma generate"
   },
   "prisma": {
     "schema": "./lib/db/schema.prisma"
@@ -22,6 +23,7 @@
     "@fortawesome/react-fontawesome": "^0.2.3",
     "@radix-ui/react-select": "^2.2.6",
     "@supabase/auth-helpers-react": "^0.5.0",
+    "@prisma/client": "^5.20.0",
     "class-variance-authority": "^0.7.1",
     "leaflet": "^1.9.4",
     "leaflet-defaulticon-compatibility": "^0.1.2",
@@ -49,6 +51,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.4.7",
+    "prisma": "^5.20.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
