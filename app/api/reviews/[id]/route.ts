@@ -1,7 +1,4 @@
-<<<<<<< HEAD
-// app/api/reviews/[id]/route.ts
-=======
->>>>>>> 66fc7289905e4cf9c341e20a3443a65433cabd7b
+
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
