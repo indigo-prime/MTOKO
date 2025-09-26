@@ -1,11 +1,11 @@
 // lib/mappings.ts
-import { $Enums } from "@prisma/client";
+import type { MainCategory, Mood } from "./googlePlaceMappings";
 
 // Local type for price range shape used by mapping
 export type PriceRange = { min: number; max: number };
 
-// Map Google types → MainCategoryEnum
-export const categoryMapping: Record<string, $Enums.MainCategoryEnum> = {
+// Map Google types → MainCategory
+export const categoryMapping: Record<string, MainCategory> = {
     restaurant: "FOOD_PACK",
     cafe: "FOOD_PACK",
     bar: "FOOD_PACK",
@@ -19,7 +19,7 @@ export const categoryMapping: Record<string, $Enums.MainCategoryEnum> = {
 };
 
 // Simple heuristic for mood
-export const moodMapping: Record<string, $Enums.Mood> = {
+export const moodMapping: Record<string, Mood> = {
     cafe: "ROMANTIC",
     park: "RELAXED",
     night_club: "ADVENTUROUS",
