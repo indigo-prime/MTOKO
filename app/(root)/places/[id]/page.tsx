@@ -1,5 +1,7 @@
 // app/(root)/places/[id]/page.tsx
 
+export const dynamic = 'force-dynamic';
+
 import PlaceCard2 from "@/components/PlaceCard2";
 import PlaceMapCard from "@/components/PlaceMapCard";
 import FeaturesRules from "@/components/FeaturesRules";
