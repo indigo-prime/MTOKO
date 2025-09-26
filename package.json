@@ -10,7 +10,8 @@
     "db:migrate": "npx prisma migrate dev",
     "db:studio": "npx prisma studio",
     "db:reset": "prisma migrate reset && prisma migrate dev",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "videos:reencode": "node scripts/reencode-videos.mjs"
   },
   "prisma": {
     "schema": "./lib/db/schema.prisma"
