@@ -73,15 +73,7 @@ export default function Header() {
 
                     {/* Nav Links */}
                     <nav ref={navRef} className="flex items-center gap-[22px] md:gap-[30px]">
-                        <Link href="/" className="text-mtoko-light hover:text-mtoko-accent">
-                            <IoHomeOutline className="text-[24px]" />
-                        </Link>
-                        <Link
-                            href="/search"
-                            className="text-mtoko-light hover:text-mtoko-accent"
-                        >
-                            <IoSearchOutline className="text-[24px]" />
-                        </Link>
+
                         <Link
                             href="/near-me"
                             className="text-mtoko-light hover:text-mtoko-accent"

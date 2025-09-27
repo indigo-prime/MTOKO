@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "headers": [
+    {
+      "source": "/videos/(.*)\\.mp4",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "video/mp4"
+        }
+      ]
+    }
+  ]
+}
