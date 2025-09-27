@@ -1,76 +1,21 @@
-"use client";
+import ClientImageRotator from "./ImageBackgroundRotator";
 
-import { useState, useEffect } from "react";
-import Image from "next/image";
 
-const videos = [
-    { src: "/videos/chocolate.mp4", leftText: "Feel the taste", rightText: "of fine chocolate." },
-    { src: "/videos/b2.mp4", leftText: "Explore different", rightText: "Cuisines in Town." },
-    { src: "/videos/b4.mp4", leftText: "Relax and enjoy", rightText: "The perfect view." },
-    { src: "/videos/b3.mp4", leftText: "Enjoy Time lasting", rightText: "Experiences." },
+const ITEMS: { src: string; leftText: string; rightText: string }[] = [
+   { src: "/images/beach-B3.png", leftText: "Sun. Sand. Smiles", rightText: "chill vibes with Mtoko!" },
+  { src: "/images/hotel-B5.jpg", leftText: "Your Poolside Escape ", rightText: "Starts with Mtoko 🏖️" },
+  { src: "/images/night-club-B2.jpg", leftText: "Nightlife with us 🔥", rightText: "makes the night feel alive" },
+  { src: "/images/pizza-B1.png", leftText: "Take a slice", rightText: "One Bite. Endless Joy" },
 ];
 
 export default function VideoBackgroundSection() {
-    const [current, setCurrent] = useState(0);
-    const [fade, setFade] = useState(true);
+  const items = ITEMS && ITEMS.length > 0
+    ? ITEMS
+    : [{ src: "/images/beach-B3.png", leftText: "Explore", rightText: "something new!" }];
 
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setFade(false);
-            setTimeout(() => {
-                setCurrent((prev) => (prev + 1) % videos.length);
-                setFade(true);
-            }, 800); // fade duration
-        }, 8000); // time per video
-        return () => clearInterval(interval);
-    }, []);
-
-    return (
-        <section className="video-background-section relative h-screen w-full overflow-hidden">
-            {/* Video */}
-            <div className="background-video-container fixed top-0 left-0 w-full h-screen z-[-1]">
-                <video
-                    key={current} // important to reload video
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    preload="auto"
-                    controlsList="nodownload noplaybackrate"
-                    disablePictureInPicture
-                    className={`w-full h-full object-cover transition-opacity duration-800 ${fade ? "opacity-100" : "opacity-0"}`}
-                    aria-hidden="true"
-                >
-                    {/* Prefer MP4 (H.264/AAC), with WebM (VP9/Opus) fallback */}
-                    <source src={videos[current].src.replace(/\.mp4$/i, '.mp4')} type="video/mp4" />
-                    <source src={videos[current].src.replace(/\.mp4$/i, '.webm')} type="video/webm" />
-                    {/* If neither source is supported */}
-                    Your browser does not support the HTML5 video tag.
-                </video>
-            </div>
-
-            {/* Text */}
-            <div className="container flex flex-col justify-center h-full relative z-10 px-4">
-                <div className="text-container relative w-full flex justify-between items-center">
-                    <h2
-                        className={`text-2xl sm:text-3xl lg:text-5xl lg:ml-65 font-bold text-mtoko-light transform transition-all duration-1000 ${
-                            fade ? "translate-x-0 opacity-100" : "-translate-x-20 opacity-0"
-                        }`}
-                    >
-                        {videos[current].leftText}
-                    </h2>
-                    <h2
-                        className={`text-2xl sm:text-3xl lg:text-5xl font-bold text-mtoko-light transform transition-all duration-1000 ${
-                            fade ? "translate-x-0 opacity-100" : "translate-x-20 opacity-0"
-                        }`}
-                    >
-                        {videos[current].rightText}
-                    </h2>
-                </div>
-
-                {/* Images */}
-
-            </div>
-        </section>
-    );
+  return (
+    <section className="relative h-screen w-full overflow-hidden">
+      <ClientImageRotator items={items} />
+    </section>
+  );
 }
