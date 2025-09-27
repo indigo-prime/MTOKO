@@ -60,10 +60,11 @@ function runFfmpeg(args) {
 async function reencodeFile(file) {
   const dir = path.dirname(file);
   const base = path.basename(file, path.extname(file));
-  const tmpOut = path.join(dir, `${base}.reencoded.tmp.mp4`);
+  const tmpMp4 = path.join(dir, `${base}.reencoded.tmp.mp4`);
+  const outWebm = path.join(dir, `${base}.webm`);
 
   // Build ffmpeg args for H.264 (libx264) + AAC with web-friendly flags
-  const args = [
+  const mp4Args = [
     '-y',
     '-i', file,
     '-c:v', 'libx264',
@@ -74,19 +75,39 @@ async function reencodeFile(file) {
     '-c:a', 'aac',
     '-b:a', '192k',
     '-ac', '2',
-    tmpOut,
+    tmpMp4,
   ];
 
-  console.log(`\nRe-encoding: ${path.relative(projectRoot, file)}`);
-  await runFfmpeg(args);
+  console.log(`\nRe-encoding (MP4): ${path.relative(projectRoot, file)}`);
+  await runFfmpeg(mp4Args);
 
   // Replace original atomically
   const backup = path.join(dir, `${base}.orig.backup.mp4`);
-  // If a previous backup exists, remove it to avoid clutter
   try { await fs.unlink(backup); } catch {}
   await fs.rename(file, backup);
-  await fs.rename(tmpOut, file);
-  console.log(`✔ Replaced original. Backup saved at ${path.relative(projectRoot, backup)}`);
+  await fs.rename(tmpMp4, file);
+  console.log(`✔ Replaced original MP4. Backup saved at ${path.relative(projectRoot, backup)}`);
+
+  // Also create a WebM (VP9 + Opus) counterpart for broader compatibility (e.g., older Safari quirks / performance)
+  // If WebM already exists, overwrite to keep in sync.
+  const webmArgs = [
+    '-y',
+    '-i', file,
+    '-c:v', 'libvpx-vp9',
+    '-b:v', '0',
+    '-crf', '33',
+    '-pix_fmt', 'yuv420p',
+    '-c:a', 'libopus',
+    '-b:a', '128k',
+    outWebm,
+  ];
+  console.log(`Creating WebM variant: ${path.relative(projectRoot, outWebm)}`);
+  try {
+    await runFfmpeg(webmArgs);
+    console.log('✔ WebM created.');
+  } catch (e) {
+    console.warn(`⚠ Failed to create WebM for ${file}:`, e.message || e);
+  }
 }
 
 async function main() {

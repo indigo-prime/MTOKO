@@ -35,9 +35,17 @@ export default function VideoBackgroundSection() {
                     muted
                     loop
                     playsInline
+                    preload="auto"
+                    controlsList="nodownload noplaybackrate"
+                    disablePictureInPicture
                     className={`w-full h-full object-cover transition-opacity duration-800 ${fade ? "opacity-100" : "opacity-0"}`}
+                    aria-hidden="true"
                 >
-                    <source src={videos[current].src} type="video/mp4" />
+                    {/* Prefer MP4 (H.264/AAC), with WebM (VP9/Opus) fallback */}
+                    <source src={videos[current].src.replace(/\.mp4$/i, '.mp4')} type="video/mp4" />
+                    <source src={videos[current].src.replace(/\.mp4$/i, '.webm')} type="video/webm" />
+                    {/* If neither source is supported */}
+                    Your browser does not support the HTML5 video tag.
                 </video>
             </div>
 

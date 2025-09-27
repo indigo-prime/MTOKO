@@ -91,7 +91,7 @@ export default async function PlaceDetail({ params }: PageProps) {
     <div className="grid justify-items-center mt-6 w-full max-w-[935px] mx-auto gap-6">
       <PlaceCard2
         placeId={place.id}
-        username={place.owner?.name ?? "owner"}
+        username={place.name}
         avatarSrc={place.owner?.image ?? "/images/avatars/default.png"}
         name={place.name}
         imageSrc={place.imageUrls?.[0] ?? "/placeholder.jpg"}
