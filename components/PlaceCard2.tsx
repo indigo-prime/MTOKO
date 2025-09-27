@@ -155,7 +155,7 @@ export default function PlaceCard2({
       <div className="flex justify-between items-center p-[14px_16px]">
         <div className="flex items-center gap-2.5">
           <Link href={`/places/${placeId}`}>
-            <span className="font-semibold text-sm text-mtoko-dark">{username}</span>
+            <span className="font-semibold text-sm text-mtoko-dark">{name ?? username}</span>
           </Link>
         </div>
 
